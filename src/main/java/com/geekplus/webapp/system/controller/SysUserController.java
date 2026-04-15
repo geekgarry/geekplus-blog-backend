@@ -286,7 +286,7 @@ public class SysUserController extends BaseController {
     @GetMapping("/getAvatarList")
     public Result getAvatarList(@RequestParam(required = false) String fileFolder)
     {
-        File file=new File(appConfig.getProfile()+ File.separator + "avatar" + File.separator + fileFolder);
+        File file=new File(appConfig.getUploadPath()+ File.separator + "avatar" + File.separator + fileFolder);
         List<String> list= new ArrayList<>();
         FileUtils.getDirectoryAllFile(file,list);
         return Result.success(list);

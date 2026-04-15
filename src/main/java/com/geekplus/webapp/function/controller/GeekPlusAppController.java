@@ -752,6 +752,7 @@ public class GeekPlusAppController extends BaseController {
         Long id=Long.parseLong(map.get("id"));
         GpArticles gpArticles=gpArticlesService.selectGpArticlesByIdForUser(isDisplay,id);
         gpArticles.setArticleContent(ArticleUtil.processRichText(gpArticles.getArticleContent()));
+        gpArticles.setIndexPicture(signer.signedUrl(gpArticles.getIndexPicture()));
         Result ajax=Result.success(gpArticles);
         ajax.put("prevRow",gpArticlesService.selectPrevGpArticle(null,id));
         ajax.put("nextRow",gpArticlesService.selectNextGpArticle(null,id));
@@ -822,6 +823,10 @@ public class GeekPlusAppController extends BaseController {
 //        gpArticles.setArticleCategory(String.valueOf(categoryId));
         startPage();
         List<GpArticles> list=gpArticlesService.selectGpArticlesListForUser(gpArticles);
+        list.stream().map(gpArticles1 -> {
+            gpArticles1.setIndexPicture(signer.signedUrl(gpArticles1.getIndexPicture()));
+            return gpArticles1;
+        }).collect(Collectors.toList());
 //        PageInfo pageInfo=new PageInfo(list);
 //        Map map=new HashMap();
 //        map.put("data",list);

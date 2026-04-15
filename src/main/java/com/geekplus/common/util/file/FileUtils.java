@@ -300,7 +300,7 @@ public class FileUtils
 //                System.out.println("absolutePath=" + file.getAbsolutePath());
 //                System.out.println("name=" + file.getName());
                 if(isImage(file.getPath())) {
-                    listImage.add(Constant.RESOURCE_PREFIX + folder + File.separator +file.getName());
+                    listImage.add(file.getAbsolutePath().replaceAll(WebAppConfig.getProfile(), Constant.RESOURCE_PREFIX));
                 }
             } else {
                 String[] fileList = file.list();
@@ -311,7 +311,7 @@ public class FileUtils
 //                        System.out.println("absolutePath=" + readFile.getAbsolutePath());
 //                        System.out.println("name=" + readFile.getName());
                         if(isImage(readFile.getPath())) {
-                            listImage.add(Constant.RESOURCE_PREFIX + folder + File.separator +readFile.getName());
+                            listImage.add(readFile.getAbsolutePath().replaceAll(WebAppConfig.getProfile(), Constant.RESOURCE_PREFIX));
                         }
                     } else if (readFile.isDirectory()) {
                         readFileImage(filepath+ folder, File.separator + fileList[i]);
