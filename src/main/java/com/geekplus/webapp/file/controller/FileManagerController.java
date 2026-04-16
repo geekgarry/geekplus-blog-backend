@@ -43,9 +43,6 @@ public class FileManagerController extends BaseController {
     @GetMapping("/list")
     public Result list(@RequestParam(defaultValue = "/") String path) {
         List<FileInfo> fileInfos = fileService.listFiles(path);
-        if(fileInfos.size() == 0) {
-            return Result.error("当前目录文件不存在！");
-        }
         Result result = Result.success();
         result.put("total", fileInfos.size());
         result.put("data",startPage(fileInfos));

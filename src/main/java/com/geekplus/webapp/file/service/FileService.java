@@ -42,9 +42,9 @@ public class FileService {
             relativePath = "/";
         }
         // 安全校验：防止目录穿越攻击 (如 ../../)
-        if (relativePath.contains("..")) {
-            throw new IllegalArgumentException("非法的路径");
-        }
+        //if (relativePath.contains("..")) {
+        //    throw new IllegalArgumentException("非法的路径");
+        //}
         checkPath(relativePath);
         File dir = new File(basePath + relativePath);
         if (!dir.exists() || !dir.isDirectory()) {

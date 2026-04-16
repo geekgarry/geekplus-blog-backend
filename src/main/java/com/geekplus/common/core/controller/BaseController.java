@@ -43,7 +43,7 @@ public class BaseController {
     public static List<FileInfo> startPage(List<FileInfo> fileInfos){
         Integer pageNum = TableDataSupport.getPageNum();
         Integer pageSize = TableDataSupport.getPageSize();
-        if (StringUtils.isNotNull(pageNum) && StringUtils.isNotNull(pageSize)) {
+        if (StringUtils.isNotNull(pageNum) && StringUtils.isNotNull(pageSize) && fileInfos.size() > 0) {
             Integer totalPages = fileInfos.size() / pageSize;
             if(fileInfos.size() % pageSize != 0) {
                 totalPages +=1;
