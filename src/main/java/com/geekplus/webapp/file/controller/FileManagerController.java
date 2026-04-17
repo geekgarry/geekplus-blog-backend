@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.List;
+import java.util.Map;
 
 /**
  * author     : geekplus
@@ -216,8 +217,8 @@ public class FileManagerController extends BaseController {
     }
 
     @PostMapping("/save-text")
-    public Result saveTextFile(@RequestBody String path, String content) {
-        fileService.saveTextFile(path, content);
+    public Result saveTextFile(@RequestBody Map<String, Object> body) {
+        fileService.saveTextFile((String) body.get("path"), (String) body.get("content"));
         return Result.success();
     }
 }

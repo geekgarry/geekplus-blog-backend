@@ -30,7 +30,7 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class FileService {
 
-    //服务器项目文件总地址
+    //服务器项目文件总地址，对应后端映射的resource地址
     @Value("${geekplus.profile}")
     private String basePath;
 
@@ -46,7 +46,8 @@ public class FileService {
         //    throw new IllegalArgumentException("非法的路径");
         //}
         checkPath(relativePath);
-        File dir = new File(basePath + relativePath);
+        String finalRelativePath = hasBasePath(relativePath);
+        File dir = new File(finalRelativePath);
         if (!dir.exists() || !dir.isDirectory()) {
             return new ArrayList<>();
         }
@@ -54,7 +55,6 @@ public class FileService {
         File[] files = dir.listFiles(pathname -> !pathname.getName().equals(".recycle_bin"));
         if (files == null) return new ArrayList<>();
 
-        String finalRelativePath = relativePath;
         return Arrays.stream(files).map(file -> buildFileInfo(file, finalRelativePath)).collect(Collectors.toList());
     }
 
@@ -62,7 +62,7 @@ public class FileService {
     public List<FileInfo> searchFiles(String relativePath, String keyword) {
         checkPath(relativePath);
         List<FileInfo> result = new ArrayList<>();
-        Path startPath = Paths.get(basePath + relativePath);
+        Path startPath = Paths.get(hasBasePath(relativePath));
 
         if (!Files.exists(startPath)) return result;
 
@@ -96,7 +96,7 @@ public class FileService {
     public void deleteBatch(List<String> paths, boolean hardDelete) throws IOException {
         for (String path : paths) {
             checkPath(path);
-            File file = new File(basePath + path);
+            File file = new File(hasBasePath(path));
             if (!file.exists()) continue;
 
             if (hardDelete) {
@@ -194,12 +194,12 @@ public class FileService {
     // 4. 批量复制
     public void copyBatch(List<String> sourcePaths, String destPath) throws IOException {
         checkPath(destPath);
-        Path destDir = Paths.get(basePath + destPath);
+        Path destDir = Paths.get(hasBasePath(destPath));
         if (!Files.exists(destDir)) Files.createDirectories(destDir);
 
         for (String src : sourcePaths) {
             checkPath(src);
-            Path sourceFile = Paths.get(basePath + src);
+            Path sourceFile = Paths.get(hasBasePath(src));
             if (!Files.exists(sourceFile)) continue;
             copyRecursively(sourceFile, destDir.resolve(sourceFile.getFileName()));
         }
@@ -208,12 +208,12 @@ public class FileService {
     // 5. 批量移动 (剪切)
     public void moveBatch(List<String> sourcePaths, String destPath) throws IOException {
         checkPath(destPath);
-        Path destDir = Paths.get(basePath + destPath);
+        Path destDir = Paths.get(hasBasePath(destPath));
         if (!Files.exists(destDir)) Files.createDirectories(destDir);
 
         for (String src : sourcePaths) {
             checkPath(src);
-            Path sourceFile = Paths.get(basePath + src);
+            Path sourceFile = Paths.get(hasBasePath(src));
             if (!Files.exists(sourceFile)) continue;
             Files.move(sourceFile, destDir.resolve(sourceFile.getFileName()), StandardCopyOption.REPLACE_EXISTING);
         }
@@ -223,13 +223,13 @@ public class FileService {
     public void compressBatch(List<String> sourcePaths, String destPath, String zipName) throws IOException {
         checkPath(destPath);
         if (!zipName.endsWith(".zip")) zipName += ".zip";
-        File zipFile = new File(basePath + destPath, zipName);
+        File zipFile = new File(hasBasePath(destPath), zipName);
 
         try (FileOutputStream fos = new FileOutputStream(zipFile);
              ZipOutputStream zos = new ZipOutputStream(fos)) {
             for (String src : sourcePaths) {
                 checkPath(src);
-                File fileToZip = new File(basePath + src);
+                File fileToZip = new File(hasBasePath(src));
                 if (fileToZip.exists()) {
                     zipFile(fileToZip, fileToZip.getName(), zos);
                 }
@@ -294,7 +294,7 @@ public class FileService {
         //绝对路径
         info.setFullPath(file.getAbsolutePath());
         //设置当前项目服务器资源路径为映射的网络访问路径
-        info.setUrl(file.getAbsolutePath().indexOf(basePath) != -1 ? file.getAbsolutePath().replaceAll(basePath, Constant.RESOURCE_PREFIX) : "");
+        info.setUrl(file.getAbsolutePath().startsWith(basePath) ? file.getAbsolutePath().replaceAll(basePath, Constant.RESOURCE_PREFIX) : "");
         info.setIsDirectory(file.isDirectory());
         info.setSize(file.isDirectory() ? 0L : file.length());
         info.setUpdateTime(new Date(file.lastModified()));
@@ -312,7 +312,7 @@ public class FileService {
         if (oldRelativePath.contains("..") || newName.contains("/") || newName.contains("\\")) {
             throw new IllegalArgumentException("非法的路径或名称");
         }
-        File oldFile = new File(basePath + oldRelativePath);
+        File oldFile = new File(hasBasePath(oldRelativePath));
         if (!oldFile.exists()) return false;
 
         String parentPath = oldFile.getParent();
@@ -327,7 +327,7 @@ public class FileService {
     // 删除文件或文件夹
     public boolean delete(String relativePath) {
         if (relativePath.contains("..")) throw new IllegalArgumentException("非法的路径");
-        File file = new File(basePath + relativePath);
+        File file = new File(hasBasePath(relativePath));
         if (!file.exists()) return true;
 
         // 可以在这里加入 MyBatis 的 delete 逻辑
@@ -346,14 +346,15 @@ public class FileService {
         }
 
         // 确保目标目录存在
-        File dir = new File(basePath + relativePath);
+        File dir = new File(hasBasePath(relativePath));
         if (!dir.exists()) {
             dir.mkdirs();
         }
 
         // 拼接完整的文件保存路径
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+        String originalFilename = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         Path targetLocation = Paths.get(dir.getAbsolutePath()).resolve(originalFilename);
+        //Path targetLocation = Paths.get(rootPath, relativePath, fileName).toAbsolutePath().normalize();
 
         // 保存文件 (如果已存在则覆盖)
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
@@ -365,7 +366,7 @@ public class FileService {
             throw new IllegalArgumentException("非法的路径");
         }
         try {
-            Path filePath = Paths.get(basePath + relativePath).normalize();
+            Path filePath = Paths.get(hasBasePath(relativePath)).normalize();
             Resource resource = new UrlResource(filePath.toUri());
             if (resource.exists() && resource.isReadable()) {
                 return resource;
@@ -380,7 +381,7 @@ public class FileService {
     // 3. 获取文件的 Content-Type
     public String getContentType(String relativePath) {
         try {
-            Path filePath = Paths.get(basePath + relativePath).normalize();
+            Path filePath = Paths.get(hasBasePath(relativePath)).normalize();
             String contentType = Files.probeContentType(filePath);
             return contentType == null ? "application/octet-stream" : contentType;
         } catch (IOException e) {
@@ -399,7 +400,7 @@ public class FileService {
 
         // 拼接目标完整路径
         String targetPath = relativePath.endsWith("/") ? relativePath + name : relativePath + "/" + name;
-        File targetFile = new File(basePath + targetPath);
+        File targetFile = new File(hasBasePath(targetPath));
 
         if (targetFile.exists()) {
             throw new IllegalArgumentException("该名称已存在，请更换名称");
@@ -425,8 +426,10 @@ public class FileService {
     //上传检查文件是否存在
     public boolean checkExist(String relativePath, String filename) {
         checkPath(relativePath); checkPath(filename);
+        //Path filePath = Paths.get(WebAppConfig.getProfile(), relativePath, filename).toAbsolutePath().normalize();
+        //filePath.toFile().exists();
         String targetPath = relativePath.endsWith("/") ? relativePath + filename : relativePath + "/" + filename;
-        return new File(basePath + targetPath).exists();
+        return new File(hasBasePath(targetPath)).exists();
     }
 
     public String readTextFile(String relativePath) {
@@ -455,6 +458,8 @@ public class FileService {
             // 方式2：BufferedWriter（推荐用于大文件或多行写入）
             BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8);
             writer.write(content);
+            // flush() 在 close() 时会自动调用，但显式调用有助于调试中间状态
+            writer.flush();
         } catch (IOException e) {
             throw new RuntimeException("保存文本文件失败: " + filePath, e);
         }
@@ -463,11 +468,8 @@ public class FileService {
     private Path resolvePath(String relativePath) {
         Path path = null;
         Path rootDirectory = Paths.get(basePath);
-        if(relativePath.indexOf(basePath) != -1){
-            return Paths.get(relativePath);
-        }
         if(relativePath.startsWith("/")) {
-            return Paths.get(basePath+relativePath);
+            return Paths.get(hasBasePath(relativePath));
         } else {
             path = rootDirectory.resolve(relativePath).normalize();
         }
@@ -476,5 +478,19 @@ public class FileService {
             throw new IllegalArgumentException("非法文件路径");
         }
         return path;
+    }
+
+    private String formatSize(long size) {
+        if (size < 1024) return size + " B";
+        int z = (63 - Long.numberOfLeadingZeros(size)) / 10;
+        return String.format("%.1f %sB", (double)size / (1L << (z * 10)), " KMGTPE".charAt(z));
+    }
+
+    private String hasBasePath(String relativePath) {
+        //当找不到项目服务器的总地址时
+        if(!relativePath.startsWith(basePath) && !relativePath.contains(basePath)) {
+            relativePath = basePath + relativePath;
+        }
+        return relativePath;
     }
 }
