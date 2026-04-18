@@ -336,7 +336,7 @@ public class FileService {
     }
 
     // 1. 文件上传
-    public void uploadFile(MultipartFile file, String relativePath) throws IOException {
+    public void uploadFile(MultipartFile file, String relativePath, boolean overwrite) throws IOException {
         if (relativePath.contains("..")) {
             throw new IllegalArgumentException("非法的路径");
         }
@@ -355,6 +355,9 @@ public class FileService {
         Path targetLocation = Paths.get(dir.getAbsolutePath()).resolve(originalFilename);
         //Path targetLocation = Paths.get(rootPath, relativePath, fileName).toAbsolutePath().normalize();
 
+        if (!overwrite && targetLocation.toFile().exists()) {
+            throw new IllegalArgumentException("文件已存在且不允许覆盖"); // 理论上前端已拦截
+        }
         // 保存文件 (如果已存在则覆盖)
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
     }

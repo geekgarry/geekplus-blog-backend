@@ -36,6 +36,7 @@ public class FileManagerController extends BaseController {
     @Autowired
     private FileService fileService;
 
+    //构造函数注入
 //    private final FileService fileService;
 //    public FileManagerController(FileService fileService) {
 //        this.fileService = fileService;
@@ -117,9 +118,10 @@ public class FileManagerController extends BaseController {
     // 预览/下载接口 (略，通常使用 ResponseEntity<Resource> 返回文件流)
     @PostMapping("/upload")
     public Result upload(@RequestParam("file") MultipartFile file,
-                            @RequestParam(defaultValue = "/") String path) {
+                            @RequestParam(defaultValue = "/") String path,
+                         @RequestParam(defaultValue = "false") boolean overwrite) {
         try {
-            fileService.uploadFile(file, path);
+            fileService.uploadFile(file, path, overwrite);
             return Result.success("上传成功");
         } catch (IOException e) {
             return Result.error("上传失败: " + e.getMessage());
@@ -142,6 +144,8 @@ public class FileManagerController extends BaseController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, dispositionType + "; filename=\"" + filename + "\"")
+                // 加入 Content-Length 才能让前端知道精确进度并且方便前端流式读取判定长度
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(resource.getFile().length()))
                 .body(resource);
     }
 
@@ -185,6 +189,8 @@ public class FileManagerController extends BaseController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/octet-stream"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                // 加入 Content-Length 才能让前端知道精确进度并且方便前端流式读取判定长度
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(resource.getFile().length()))
                 .body(resource);
     }
 
@@ -203,9 +209,9 @@ public class FileManagerController extends BaseController {
         }
     }
 
-    @GetMapping("/check-exist")
-    public Result checkExist(@RequestParam String path, @RequestParam String filename) {
-        return Result.success(fileService.checkExist(path, filename));
+    @PostMapping("/check-exist")
+    public Result checkExist(@RequestBody Map<String, Object> body) {
+        return Result.success(fileService.checkExist((String) body.get("path"), (String) body.get("filename")));
     }
 
     @PostMapping("/read-text")
