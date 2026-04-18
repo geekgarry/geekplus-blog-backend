@@ -46,15 +46,14 @@ public class FileService {
         //    throw new IllegalArgumentException("非法的路径");
         //}
         checkPath(relativePath);
-        String finalRelativePath = hasBasePath(relativePath);
-        File dir = new File(finalRelativePath);
+        File dir = new File(hasBasePath(relativePath));
         if (!dir.exists() || !dir.isDirectory()) {
             return new ArrayList<>();
         }
 
         File[] files = dir.listFiles(pathname -> !pathname.getName().equals(".recycle_bin"));
         if (files == null) return new ArrayList<>();
-
+        String finalRelativePath = relativePath;
         return Arrays.stream(files).map(file -> buildFileInfo(file, finalRelativePath)).collect(Collectors.toList());
     }
 
