@@ -5,9 +5,11 @@ import com.geekplus.common.constant.Constant;
 import com.geekplus.common.domain.Result;
 import com.geekplus.webapp.common.monitor.entity.JvmMetric;
 import com.geekplus.webapp.common.monitor.mapper.JvmMetricMapper;
+import com.geekplus.webapp.file.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +21,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.management.*;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -37,6 +42,8 @@ public class JvmMonitorController {
 
 //    @Autowired
 //    private JvmMetricMapper jvmMetricMapper;
+    @Autowired
+    private FileService fileService;
 
     // 假设的日志和转储文件存储目录
     private final String LOG_DIR = WebAppConfig.getProfile()+"/logs";
@@ -329,19 +336,22 @@ public class JvmMonitorController {
     /**
      * 下载 Heap Dump 文件
      */
-    @GetMapping("/heap-dump/download/{fileName}")
-    public ResponseEntity<Resource> downloadHeapDump(@PathVariable String fileName) {
+    @GetMapping("/heap-dump/download")
+    public ResponseEntity<Resource> downloadHeapDump(@RequestParam String fileName) throws IOException {
         // 安全校验：防止目录遍历攻击
         if (fileName.contains("..") || fileName.contains("/")) {
             return ResponseEntity.badRequest().build();
         }
-        File file = new File(DUMP_DIR + File.separator + fileName);
-        if (!file.exists()) {
-            return ResponseEntity.notFound().build();
-        }
-        Resource resource = new FileSystemResource(file);
+//        File file = new File(DUMP_DIR + File.separator + fileName);
+//        if (!file.exists()) {
+//            return ResponseEntity.notFound().build();
+//        }
+//        Resource resource = new FileSystemResource(file);
+        Resource resource = fileService.loadFileAsResource(DUMP_DIR + File.separator + fileName);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                // 加入 Content-Length 才能让前端知道精确进度并且方便前端流式读取判定长度
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(resource.getFile().length()))
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
     }
