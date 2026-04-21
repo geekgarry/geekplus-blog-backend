@@ -90,7 +90,7 @@ public class GpMusicController extends BaseController {
             File desc =FileUtils.getExistFileCategory(uploadDir + File.separator + fileName);
             file.transferTo(desc);
             //String pathFileName = getPathFileName(baseDir, fileName);
-            String resultFileName= Constant.RESOURCE_PREFIX+realFilePath+File.separator+fileName;
+            String resultFileName= desc.getAbsolutePath().replaceAll(appConfig.getProfile(), Constant.RESOURCE_PREFIX);
             //log.info("用户请求URL信息："+serverConfig.getUrl());//当前网站的网址
             Result ajax = Result.success();
             ajax.put("fileName", fileName);

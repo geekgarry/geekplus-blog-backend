@@ -166,7 +166,7 @@ public class ThumbnailUtils {
                             .outputQuality(0.9d)
                             .toFile(serverDesc);
                 }
-                thumbnailImg=prefixUrl+Constant.RESOURCE_PREFIX+thumbnailPath;
+                thumbnailImg=prefixUrl+serverDesc.getAbsolutePath().replaceAll(WebAppConfig.getProfile(), Constant.RESOURCE_PREFIX);
             }else{
                 //System.out.println("网络图片地址url："+imgPath);
 //                //new一个URL对象

@@ -178,7 +178,7 @@ public class CommonController
             File desc =FileUtils.getExistFileCategory(uploadDir + File.separator + fileName);
             file.transferTo(desc);
             //String pathFileName = getPathFileName(baseDir, fileName);
-            String resultFileName= Constant.RESOURCE_PREFIX+realFilePath+File.separator+fileName;
+            String resultFileName = (uploadDir+File.separator+fileName).replaceAll(appConfig.getProfile(), Constant.RESOURCE_PREFIX);
             //String url = serverConfig.getUrl() + resultFileName;
             //log.info("用户请求URL信息："+serverConfig.getUrl());
             Result ajax = Result.success();
@@ -362,8 +362,7 @@ public class CommonController
         int length=filePaths.size();
         for (int i = 0; i < filePaths.size(); i++) {
             String filePath=filePaths.get(i).get("filePath").toString();
-            String profile= Constant.RESOURCE_PREFIX;//profile
-            String allFilePath=appConfig.getProfile()+filePath.replace(profile,"");
+            String allFilePath=appConfig.getProfile()+(filePath.startsWith(Constant.RESOURCE_PREFIX) ? filePath.replace(Constant.RESOURCE_PREFIX,"") : filePath);
             int ds=FileUtils.deleteFileByRecursion(allFilePath);
             length-=ds;
         }
@@ -382,8 +381,7 @@ public class CommonController
     public Result batchDeleteFile(String[] filePaths)
     {
         for(String filePath:filePaths) {
-            String profile = Constant.RESOURCE_PREFIX;//profile
-            String allFilePath = appConfig.getProfile() + filePath.replace(profile, "");
+            String allFilePath = appConfig.getProfile()+(filePath.startsWith(Constant.RESOURCE_PREFIX) ? filePath.replace(Constant.RESOURCE_PREFIX,"") : filePath);
             FileUtils.deleteFileByRecursion(allFilePath);
 //            if (flag == true) {
 //                return Result.success("删除文件成功！");
