@@ -117,15 +117,25 @@ public class FileManagerController extends BaseController {
 
     // 预览/下载接口 (略，通常使用 ResponseEntity<Resource> 返回文件流)
     @PostMapping("/upload")
-    public Result upload(@RequestParam("file") MultipartFile file,
-                            @RequestParam(defaultValue = "/") String path,
-                         @RequestParam(defaultValue = "false") boolean overwrite) {
-        try {
-            fileService.uploadFile(file, path, overwrite);
-            return Result.success("上传成功");
-        } catch (IOException e) {
-            return Result.error("上传失败: " + e.getMessage());
+    public Result upload(
+            @RequestParam(value = "path", defaultValue = "/") String path,
+            @RequestParam(value = "overwrite", required = false, defaultValue = "false") boolean overwrite,
+            @RequestParam(value = "relativePaths", required = false) String[] relativePaths,
+            @RequestPart("files") MultipartFile[] files) {
+        //fileService.uploadFile(file, path, overwrite);
+        List<String> result = fileService.uploadFiles(path, files, relativePaths, overwrite);
+
+        if (!result.isEmpty() && !overwrite) {
+            return Result.error("存在重复文件", result);
         }
+        return Result.success("上传成功");
+    }
+
+    @PostMapping("/check-exist")
+    public Result checkExist(@RequestBody Map<String, Object> request) {
+        //fileService.checkExist((String) body.get("path"), (String) body.get("filename"))
+        List<String> duplicates = fileService.findExistingPaths((String) request.get("path"), (List<String>) request.get("paths"));
+        return Result.success(duplicates);
     }
 
     @GetMapping("/download")
@@ -207,11 +217,6 @@ public class FileManagerController extends BaseController {
         } catch (Exception e) {
             return Result.error("创建失败: " + e.getMessage());
         }
-    }
-
-    @PostMapping("/check-exist")
-    public Result checkExist(@RequestBody Map<String, Object> body) {
-        return Result.success(fileService.checkExist((String) body.get("path"), (String) body.get("filename")));
     }
 
     @PostMapping("/read-text")

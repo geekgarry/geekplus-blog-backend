@@ -362,6 +362,67 @@ public class FileService {
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    public List<String> uploadFiles(String currentPath,
+                                    MultipartFile[] files,
+                                    String[] relativePaths,
+                                    boolean overwrite) {
+
+        Path targetRoot = Paths.get(basePath, normalizePath(currentPath));
+        List<String> duplicates = new ArrayList<>();
+
+        for (int i = 0; i < files.length; i++) {
+            String relativePath = (relativePaths != null && relativePaths.length > i && StringUtils.hasText(relativePaths[i]))
+                    ? relativePaths[i]
+                    : files[i].getOriginalFilename();
+            Path dest = targetRoot.resolve(relativePath).normalize();
+            if (!dest.startsWith(targetRoot)) {
+                throw new IllegalArgumentException("非法路径");
+            }
+            if (Files.exists(dest)) {
+                duplicates.add(relativePath);
+            }
+        }
+
+        if (!overwrite && !duplicates.isEmpty()) {
+            return duplicates;
+        }
+
+        for (int i = 0; i < files.length; i++) {
+            String relativePath = (relativePaths != null && relativePaths.length > i && StringUtils.hasText(relativePaths[i]))
+                    ? relativePaths[i]
+                    : files[i].getOriginalFilename();
+            Path dest = targetRoot.resolve(relativePath).normalize();
+            try {
+                Files.createDirectories(dest.getParent());
+                files[i].transferTo(dest.toFile());
+            } catch (IOException e) {
+                throw new RuntimeException("文件保存失败: " + relativePath, e);
+            }
+        }
+
+        return duplicates;
+    }
+
+    public List<String> findExistingPaths(String currentPath, List<String> relativePaths) {
+        checkPath(currentPath);
+        Path targetRoot = Paths.get(hasBasePath(currentPath)).normalize();
+        return relativePaths.stream()
+                .filter(StringUtils::hasText)
+                .map(targetRoot::resolve)
+                .map(Path::normalize)
+                .filter(path -> path.startsWith(targetRoot))
+                .map(path -> targetRoot.relativize(path).toString())
+                .filter(path -> Files.exists(targetRoot.resolve(path)))
+                .collect(Collectors.toList());
+    }
+
+    private String normalizePath(String path) {
+        if (!StringUtils.hasText(path)) {
+            return "";
+        }
+        return path.replaceAll("^/+", "").replaceAll("/+$", "");
+    }
+
     // 2. 加载文件资源 (用于下载和预览)
     public Resource loadFileAsResource(String relativePath) {
         if (relativePath.contains("..")) {
