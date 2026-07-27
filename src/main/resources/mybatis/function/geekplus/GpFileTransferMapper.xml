@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.geekplus.webapp.function.mapper.GpFileTransferMapper">
+
+    <resultMap id="GpFileTransferResult" type="GpFileTransfer">
+        <id property="id" column="id"/>
+        <result property="shareCode" column="share_code"/>
+        <result property="originalName" column="original_name"/>
+        <result property="storedName" column="stored_name"/>
+        <result property="storedPath" column="stored_path"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="contentType" column="content_type"/>
+        <result property="passwordHash" column="password_hash"/>
+        <result property="hasPassword" column="has_password"/>
+        <result property="maxDownloads" column="max_downloads"/>
+        <result property="downloadCount" column="download_count"/>
+        <result property="burnAfterRead" column="burn_after_read"/>
+        <result property="expireAt" column="expire_at"/>
+        <result property="clientIp" column="client_ip"/>
+        <result property="fingerprint" column="fingerprint"/>
+        <result property="machineId" column="machine_id"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <insert id="insertGpFileTransfer" useGeneratedKeys="true" keyProperty="id">
+        insert into gp_file_transfer (
+            share_code, original_name, stored_name, stored_path, file_size, content_type,
+            password_hash, has_password, max_downloads, download_count, burn_after_read,
+            expire_at, client_ip, fingerprint, machine_id, status, create_time, update_time
+        ) values (
+            #{shareCode}, #{originalName}, #{storedName}, #{storedPath}, #{fileSize}, #{contentType},
+            #{passwordHash}, #{hasPassword}, #{maxDownloads}, #{downloadCount}, #{burnAfterRead},
+            #{expireAt}, #{clientIp}, #{fingerprint}, #{machineId}, #{status}, now(), now()
+        )
+    </insert>
+
+    <select id="selectByShareCode" resultMap="GpFileTransferResult">
+        select * from gp_file_transfer where share_code = #{shareCode} limit 1
+    </select>
+
+    <update id="increaseDownloadCount">
+        update gp_file_transfer
+        set download_count = download_count + 1, update_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="softDeleteById">
+        update gp_file_transfer set status = 0, update_time = now() where id = #{id}
+    </update>
+
+    <update id="softDeleteExpired">
+        update gp_file_transfer
+        set status = 0, update_time = now()
+        where status = 1 and expire_at &lt;= #{now}
+    </update>
+
+    <select id="selectExpiredActive" resultMap="GpFileTransferResult">
+        select * from gp_file_transfer
+        where status = 1 and expire_at &lt;= #{now}
+        order by expire_at asc
+        limit #{limit}
+    </select>
+
+    <select id="countUploadsSince" resultType="int">
+        select count(1) from gp_file_transfer
+        where create_time &gt;= #{since}
+          and (
+            <if test="fingerprint != null and fingerprint != ''">
+                fingerprint = #{fingerprint}
+            </if>
+            <if test="fingerprint == null or fingerprint == ''">
+                1 = 0
+            </if>
+            <if test="clientIp != null and clientIp != ''">
+                or client_ip = #{clientIp}
+            </if>
+            <if test="machineId != null and machineId != ''">
+                or machine_id = #{machineId}
+            </if>
+          )
+    </select>
+</mapper>

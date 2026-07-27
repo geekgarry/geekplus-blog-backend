@@ -31,10 +31,10 @@ spring:
   # 文件上传
   servlet:
     multipart:
-      # 单个文件大小
-      max-file-size:  10MB
-      # 设置总上传的文件大小
-      max-request-size:  20MB
+      # 临时文件中转单文件约 200MB，开发环境放宽
+      max-file-size: 200MB
+      # 批量上传总大小
+      max-request-size: 500MB
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
@@ -134,6 +134,7 @@ mybatis:
     use-generated-keys: on
     default-executor-type: reuse
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
 #Swagger配置
 swagger:
   enable: true
@@ -150,12 +151,22 @@ pagehelper:
   params: count=countSql
   page-size-zero: true
 #  reasonable: true
-openai:
-  api:
-    key: your_key
-google:
+# 统一 AI 配置（后台 ai_source 可覆盖默认源与模型）
+# 免费档推荐 gemini-2.5-flash / flash-lite；gemini-2.5-pro 免费配额常为 0
+# 文档：https://ai.google.dev/gemini-api/docs
+ai:
+  default-provider: gemini
   gemini:
     api-key: your_key
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: gemini-2.5-flash
+    stream-model: gemini-2.5-flash
+    history-model: gemini-2.5-flash
+    tts-model: gemini-2.5-flash-preview-tts
+  chatgpt:
+    api-key: your_key
+    api-url: https://api.openai.com/v1/chat/completions
+    model: gpt-4o-mini
 token:
   expireTime: 604800 #过期时间7天
   residueRefreshTime: 86400 #最后一天

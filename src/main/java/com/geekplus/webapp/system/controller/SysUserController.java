@@ -19,12 +19,10 @@ import com.geekplus.common.util.file.FileUtils;
 import com.geekplus.common.util.poi.ExcelUtil;
 import com.geekplus.common.util.string.StringUtils;
 import com.geekplus.framework.jwtshiro.JwtUtil;
-import com.geekplus.webapp.system.entity.ResourceMetaData;
 import com.geekplus.webapp.system.entity.SysDept;
 import com.geekplus.webapp.system.entity.SysRole;
 import com.geekplus.webapp.system.entity.SysUser;
 import com.geekplus.webapp.common.service.SysUserTokenService;
-import com.geekplus.webapp.system.service.ResourceMetaDataService;
 import com.geekplus.webapp.system.service.SysRoleService;
 import com.geekplus.webapp.system.service.SysUserRoleService;
 import com.geekplus.webapp.system.service.SysUserService;
@@ -59,8 +57,6 @@ public class SysUserController extends BaseController {
     private SysUserTokenService sysUserTokenService;
     @Resource
     private JwtUtil jwtUtil;
-    @Autowired
-    private ResourceMetaDataService resourceService;
     @Autowired
     private SignatureUtil signer;
     @Autowired
@@ -254,8 +250,6 @@ public class SysUserController extends BaseController {
     {
         if (!file.isEmpty())
         {
-            ResourceMetaData resource =new ResourceMetaData();
-            resource.setOriginalFileName(file.getOriginalFilename());
             LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
             String avatar = FileUploadUtils.upload(appConfig.getAvatarPath() + File.separator + fileFolder, file);
             if (sysUserService.updateUserAvatar(loginUser.getUsername(), avatar))
@@ -265,15 +259,6 @@ public class SysUserController extends BaseController {
                 // 更新缓存用户头像
                 loginUser.setAvatar(avatar);
                 sysUserTokenService.setLoginUser(loginUser);
-                resource.setAccessLevel("PRIVATE");
-                resource.setActualStoragePath(appConfig.getAvatarPath() + File.separator + fileFolder+avatar.replace(Constant.RESOURCE_PREFIX, ""));
-                resource.setContentType("image");
-                resource.setEntityType(2);
-                resource.setIsAvailable(1);
-                resource.setLogicalPath(avatar);
-                resource.setStoredFileName(avatar.substring(avatar.lastIndexOf(File.separator)+1));
-                resource.setOwnerUserId(loginUser.getUserId());
-                resourceService.addResourceMetaData(resource);
                 return ajax;
             }
         }

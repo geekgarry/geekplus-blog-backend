@@ -34,6 +34,13 @@ public class ChatPrompt implements Serializable {
 
     private Integer tts;
 
+    /** 可选：gemini / chatgpt，空则走后台默认 AI 源 */
+    private String provider;
+    /** 可选覆盖模型，如 gemini-2.5-flash */
+    private String model;
+    /** 可选：指定 ai_source 表主键 */
+    private Long sourceId;
+
     public String getUserId() {
         return userId;
     }
@@ -120,5 +127,29 @@ public class ChatPrompt implements Serializable {
 
     public void setTts(Integer tts) {
         this.tts = tts;
+    }
+
+    public String getProvider() {
+        return provider;
+    }
+
+    public void setProvider(String provider) {
+        this.provider = provider;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public Long getSourceId() {
+        return sourceId;
+    }
+
+    public void setSourceId(Long sourceId) {
+        this.sourceId = sourceId;
     }
 }

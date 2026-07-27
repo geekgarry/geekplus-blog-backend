@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.geekplus.common.ai.AiRuntimeConfig;
+import com.geekplus.common.ai.config.AiProperties;
 import com.geekplus.common.domain.ChatPrompt;
 import com.geekplus.common.util.datetime.DateTimeUtils;
 import com.geekplus.common.util.http.ServletUtil;
@@ -56,8 +58,14 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 public class GeminiChatService {
-    @Value("${google.gemini.api-key:}")
+    @Value("${ai.gemini.api-key:}")
     private String geminiApiKey;
+
+    @Autowired
+    private AiSourceService aiSourceService;
+
+    @Autowired
+    private AiProperties aiProperties;
 
     @Resource
     private IChatAILogService chatgptLogService;
@@ -135,10 +143,12 @@ public class GeminiChatService {
                 historyChatDataList.add(msgByteDataMap);
                 formChatPromptMap.addAll("contents", historyChatDataList);
                 // 1) 构造请求到后端 AI 的 body（依据后端文档）
+                AiRuntimeConfig streamCfg = resolveGeminiConfig(chatPrompt);
                 return webClient.post()
-                        .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse") // 假设后端流式 endpoint
+                        .uri(GeminiUtils.buildStreamUrl(streamCfg.getBaseUrl(),
+                                Optional.ofNullable(aiProperties.getGemini().getStreamModel()).orElse(streamCfg.getModel())))
                         .contentType(MediaType.MULTIPART_FORM_DATA)
-                        .header("x-goog-api-key", geminiApiKey)
+                        .header("x-goog-api-key", streamCfg.getApiKey())
                         .accept(MediaType.TEXT_EVENT_STREAM) // 或 MediaType.APPLICATION_NDJSON
                         .bodyValue(finalChatPromptMap)
                         .retrieve()
@@ -151,10 +161,12 @@ public class GeminiChatService {
             }
         }
         // 1) 构造请求到后端 AI 的 body（依据后端文档）
+        AiRuntimeConfig streamCfg = resolveGeminiConfig(chatPrompt);
         return webClient.post()
-                .uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse") // 假设后端流式 endpoint
+                .uri(GeminiUtils.buildStreamUrl(streamCfg.getBaseUrl(),
+                        Optional.ofNullable(aiProperties.getGemini().getStreamModel()).orElse(streamCfg.getModel())))
                 .contentType(MediaType.APPLICATION_JSON)
-                .header("x-goog-api-key", geminiApiKey)
+                .header("x-goog-api-key", streamCfg.getApiKey())
                 .accept(MediaType.TEXT_EVENT_STREAM) // 或 MediaType.APPLICATION_NDJSON
                 .bodyValue(finalChatPromptMap)
                 .retrieve()
@@ -280,11 +292,16 @@ public class GeminiChatService {
             }
             //chatPrompt.setMediaData(Base64Util.getBase64Str(chatPrompt.getMediaData().toString()));
         }
-        //Gemini AI 返回内容
+        //Gemini AI 返回内容（模型/Key 来自 AI 源配置，默认 gemini-2.5-flash）
+        AiRuntimeConfig runtimeConfig = resolveGeminiConfig(chatPrompt);
+        String apiKey = StringUtils.isNotEmpty(runtimeConfig.getApiKey()) ? runtimeConfig.getApiKey() : geminiApiKey;
+        String model = runtimeConfig.getModel();
+        String baseUrl = runtimeConfig.getBaseUrl();
         if(null == chatPrompt.getHistoryChatData()) {//|| chatPrompt.getHistoryChatData().isEmpty()
-            aiReplyText = GeminiUtils.postGemini(chatPrompt, geminiApiKey);
+            aiReplyText = GeminiUtils.postGemini(chatPrompt, apiKey, model, baseUrl);
         }else {
-            aiReplyText = GeminiUtils.postGeminiHistory(chatPrompt, geminiApiKey);
+            String historyModel = Optional.ofNullable(aiProperties.getGemini().getHistoryModel()).orElse(model);
+            aiReplyText = GeminiUtils.postGeminiHistory(chatPrompt, apiKey, historyModel, baseUrl);
         }
 
         //存储对话记录
@@ -566,6 +583,20 @@ public class GeminiChatService {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /** 解析 Gemini 运行时配置（请求 > DB 默认源 > YAML），强制走 gemini 提供方 */
+    private AiRuntimeConfig resolveGeminiConfig(ChatPrompt chatPrompt) {
+        String provider = StringUtils.isNotEmpty(chatPrompt.getProvider()) ? chatPrompt.getProvider() : "gemini";
+        AiRuntimeConfig config = aiSourceService.resolve(chatPrompt.getSourceId(), provider, chatPrompt.getModel());
+        if (!"gemini".equalsIgnoreCase(config.getProvider())) {
+            // 聊天流仍走 Gemini 实现时，回退到 YAML gemini 配置
+            config = aiSourceService.resolve(null, "gemini", chatPrompt.getModel());
+        }
+        if (StringUtils.isEmpty(config.getApiKey()) && StringUtils.isNotEmpty(geminiApiKey)) {
+            config.setApiKey(geminiApiKey);
+        }
+        return config;
     }
 
 //    public Set<String> getScanSortedKeys(Strinng ) {

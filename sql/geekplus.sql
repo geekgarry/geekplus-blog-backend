@@ -557,10 +557,10 @@ INSERT INTO `sys_user_role` VALUES (4, 4);
 COMMIT;
 
 -- ----------------------------
--- Table structure for chatAI_log
+-- Table structure for chatai_log
 -- ----------------------------
-DROP TABLE IF EXISTS `chatAI_log`;
-CREATE TABLE `chatAI_log` (
+DROP TABLE IF EXISTS `chatai_log`;
+CREATE TABLE `chatai_log` (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
   `user_id` int(18) DEFAULT NULL COMMENT '用户ID',
   `username` varchar(30) DEFAULT NULL COMMENT '用户名',
@@ -586,5 +586,111 @@ CREATE TABLE `sys_file` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_file_path` (`file_path`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文件资源管理表';
+
+-- 临时文件中转：到期自动清理；密码可选；限流依赖 fingerprint/ip/machine_id
+CREATE TABLE IF NOT EXISTS gp_file_transfer (
+  id              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  share_code      VARCHAR(32)  NOT NULL COMMENT '分享码',
+  original_name   VARCHAR(255) NOT NULL COMMENT '原始文件名',
+  stored_name     VARCHAR(255) NOT NULL COMMENT '磁盘存储名',
+  stored_path     VARCHAR(512) NOT NULL COMMENT '相对存储路径',
+  file_size       BIGINT       NOT NULL DEFAULT 0 COMMENT '字节大小',
+  content_type    VARCHAR(128) DEFAULT NULL COMMENT 'MIME',
+  password_hash   VARCHAR(128) DEFAULT NULL COMMENT '访问密码哈希',
+  has_password    TINYINT      NOT NULL DEFAULT 0 COMMENT '是否加密',
+  max_downloads   INT          NOT NULL DEFAULT 0 COMMENT '下载上限，0不限',
+  download_count  INT          NOT NULL DEFAULT 0 COMMENT '已下载次数',
+  burn_after_read TINYINT      NOT NULL DEFAULT 0 COMMENT '阅后即焚',
+  expire_at       DATETIME     NOT NULL COMMENT '过期时间',
+  client_ip       VARCHAR(64)  DEFAULT NULL COMMENT '上传 IP',
+  fingerprint     VARCHAR(128) DEFAULT NULL COMMENT '浏览器指纹',
+  machine_id      VARCHAR(128) DEFAULT NULL COMMENT '机器标识',
+  status          TINYINT      NOT NULL DEFAULT 1 COMMENT '1有效 0已删',
+  create_time     DATETIME     DEFAULT CURRENT_TIMESTAMP,
+  update_time     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_share_code (share_code),
+  KEY idx_expire_status (expire_at, status),
+  KEY idx_fp_ctime (fingerprint, create_time),
+  KEY idx_ip_ctime (client_ip, create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='临时文件中转';
+
+-- ----------------------------
+-- Table structure for resume_data
+-- ----------------------------
+DROP TABLE IF EXISTS `resume_data`;
+CREATE TABLE `resume_data` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `user_id` bigint NOT NULL,
+  `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `template_key` varchar(64) DEFAULT NULL COMMENT '模板标识',
+  `data_json` longtext,
+  `updated_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `resume_data_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ----------------------------
+-- Table structure for resume_template
+-- ----------------------------
+DROP TABLE IF EXISTS `resume_template`;
+CREATE TABLE `resume_template` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `key` varchar(100) NOT NULL COMMENT '模版key：template1',
+  `name` varchar(100) NOT NULL,
+  `description` text,
+  `layout_json` text,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `key` (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- AI 源管理表：后台可配置多提供方 / 模型并切换默认源
+CREATE TABLE IF NOT EXISTS ai_source (
+  id          BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  name        VARCHAR(64)  NOT NULL COMMENT '显示名称',
+  provider    VARCHAR(32)  NOT NULL COMMENT 'gemini / chatgpt / ...',
+  model       VARCHAR(128) NOT NULL COMMENT '模型名',
+  api_key     VARCHAR(512) DEFAULT NULL COMMENT '可选，空则用 YAML',
+  api_url     VARCHAR(512) DEFAULT NULL COMMENT 'gemini=baseUrl；chatgpt=完整URL如 api.openai.com/...',
+  enabled     TINYINT      NOT NULL DEFAULT 1,
+  is_default  TINYINT      NOT NULL DEFAULT 0,
+  sort_order  INT          NOT NULL DEFAULT 0,
+  remark      VARCHAR(255) DEFAULT NULL,
+  created_at  DATETIME     DEFAULT CURRENT_TIMESTAMP,
+  updated_at  DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_provider (provider),
+  KEY idx_default (is_default, enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI源配置';
+
+-- 免费档推荐默认：gemini-2.5-flash（Pro 免费配额常为 0）
+INSERT INTO ai_source(name, provider, model, api_url, enabled, is_default, sort_order, remark)
+SELECT 'Gemini 2.5 Flash（免费推荐）', 'gemini', 'gemini-2.5-flash',
+       'https://generativelanguage.googleapis.com/v1beta', 1, 1, 1, '免费档 generateContent 推荐'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE provider = 'gemini' AND model = 'gemini-2.5-flash' LIMIT 1);
+
+INSERT INTO ai_source(name, provider, model, api_url, enabled, is_default, sort_order, remark)
+SELECT 'Gemini 2.5 Flash-Lite', 'gemini', 'gemini-2.5-flash-lite',
+       'https://generativelanguage.googleapis.com/v1beta', 1, 0, 2, '更快更省配额'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE provider = 'gemini' AND model = 'gemini-2.5-flash-lite' LIMIT 1);
+
+INSERT INTO ai_source(name, provider, model, api_url, enabled, is_default, sort_order, remark)
+SELECT 'ChatGPT GPT-4o-mini', 'chatgpt', 'gpt-4o-mini',
+       'https://api.openai.com/v1/chat/completions', 0, 0, 10, '需配置 ChatGPT Key'
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE provider IN ('chatgpt', 'openai') AND model = 'gpt-4o-mini' LIMIT 1);
+
+-- 若库中仍有旧 provider=openai，可执行：
+-- UPDATE ai_source SET provider = 'chatgpt' WHERE provider = 'openai';
+
+
+-- 可选：若使用 sys_menu 动态菜单，按实际 parent_id 调整后执行
+-- INSERT INTO sys_menu(menu_name, parent_id, order_num, path, component, is_frame, menu_type, visible, status, perms, icon, create_by, create_time, remark)
+-- VALUES ('AI管理', 1, 10, 'ai', 'system/ai/index', 1, 'C', '0', '0', 'system:ai:list', 'component', 'admin', NOW(), 'Gemini模型与AI源');
 
 SET FOREIGN_KEY_CHECKS = 1;

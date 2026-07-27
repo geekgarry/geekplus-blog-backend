@@ -1,5 +1,5 @@
 server:
-#  port: 9002
+  #  port: 9002
   port: 8443
   servlet:
     context-path: /
@@ -47,7 +47,7 @@ spring:
   servlet:
     multipart:
       # 单个文件大小
-      max-file-size: 400MB
+      max-file-size: 250MB
       # 设置总上传的文件大小
       max-request-size: 1000MB
   mvc:
@@ -149,6 +149,7 @@ mybatis:
     use-generated-keys: on
     default-executor-type: reuse
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
 #Swagger配置
 #springfox:
 #  documentation:
@@ -170,12 +171,20 @@ pagehelper:
   params: count=countSql
   page-size-zero: true
 #  reasonable: true
-openai:
-  api:
-    key: your_key
-google:
+# 统一 AI 配置（后台 ai_source 可覆盖；勿将 Pro 作为免费默认）
+ai:
+  default-provider: gemini
   gemini:
+    api-key: AIzaSyAhacoGwhYroet2JQ7kTD2-AFoOTUVEsp0
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    model: gemini-2.5-flash
+    stream-model: gemini-2.5-flash
+    history-model: gemini-2.5-flash
+    tts-model: gemini-2.5-flash-preview-tts
+  chatgpt:
     api-key: your_key
+    api-url: https://api.openai.com/v1/chat/completions
+    model: gpt-4o-mini
 token:
   expireTime: 604800 #过期时间7天
   residueRefreshTime: 86400 #最后一天

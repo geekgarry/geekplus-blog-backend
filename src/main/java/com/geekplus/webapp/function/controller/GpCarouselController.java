@@ -16,8 +16,6 @@ import com.geekplus.common.util.file.FileUtils;
 //import com.geekplus.common.util.poi.ExcelUtil;
 import com.geekplus.common.util.uuid.IdUtils;
 import com.geekplus.webapp.function.entity.GpCarousel;
-import com.geekplus.webapp.system.entity.ResourceMetaData;
-import com.geekplus.webapp.system.service.ResourceMetaDataService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +42,6 @@ public class GpCarouselController extends BaseController
 {
     @Autowired
     private IGpCarouselService gpCarouselService;
-    @Autowired
-    private ResourceMetaDataService resourceService;
     @Autowired
     private WebAppConfig appConfig;
 
@@ -89,13 +85,6 @@ public class GpCarouselController extends BaseController
     public Result add(@RequestBody GpCarousel gpCarousel)
     {
         if(gpCarouselService.insertGpCarousel(gpCarousel)>0){
-            ResourceMetaData resourceMetaData2 = new ResourceMetaData();
-            resourceMetaData2.setLogicalPath(gpCarousel.getCarouselImg());
-            if(gpCarousel.getIsDisplay().equals('1')) {
-                resourceMetaData2.setAccessLevel("PUBLIC");
-                resourceMetaData2.setIsAvailable(0);
-            }
-            resourceService.modifyResourceMetaByFilePath(resourceMetaData2);
             return Result.success();
         }else {
             return Result.error();
@@ -110,13 +99,6 @@ public class GpCarouselController extends BaseController
     public Result edit(@RequestBody GpCarousel gpCarousel)
     {
         if(gpCarouselService.updateGpCarousel(gpCarousel)>0){
-            ResourceMetaData resourceMetaData = new ResourceMetaData();
-            resourceMetaData.setLogicalPath(gpCarousel.getCarouselImg());
-            if(gpCarousel.getIsDisplay().equals('1')) {
-                resourceMetaData.setAccessLevel("PUBLIC");
-                resourceMetaData.setIsAvailable(0);
-            }
-            resourceService.modifyResourceMetaByFilePath(resourceMetaData);
             return Result.success();
         }else {
             return Result.error();
@@ -147,8 +129,6 @@ public class GpCarouselController extends BaseController
             String uploadDir=appConfig.getUploadPath()+"/carousel";
             // 上传并获取文件名称
             String fileName = file.getOriginalFilename();
-            ResourceMetaData resource =new ResourceMetaData();
-            resource.setOriginalFileName(fileName);
             String extension = FileUploadUtils.getExtension(file);
             fileName = DateUtil.dateTime() + IdUtils.getSHAFileULID() + "." + extension;
 
@@ -162,15 +142,6 @@ public class GpCarouselController extends BaseController
             Result ajax = Result.success();
             ajax.put("fileName", fileName);
             ajax.put("url", resultFileName);
-            resource.setAccessLevel("PRIVATE");
-            resource.setActualStoragePath(desc.getAbsolutePath());
-            resource.setContentType("image");
-            resource.setEntityType(2);
-            resource.setIsAvailable(1);
-            resource.setLogicalPath(resultFileName);
-            resource.setStoredFileName(fileName);
-            resource.setOwnerUserId(loginUser.getUserId());
-            resourceService.addResourceMetaData(resource);
             return ajax;
         }
         catch (Exception e)

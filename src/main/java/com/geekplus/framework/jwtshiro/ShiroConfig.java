@@ -105,7 +105,7 @@ public class ShiroConfig {
         map.put("/customer/logout","anon");
         map.put("/customer/register","anon");
         map.put("/covid/**","anon");
-        map.put("/AIBot/**","anon");
+        map.put("/ai/**","anon");
         map.put("/geekplusapp/**","anon");
         map.put("/websocket/**","anon");
         map.put("/chatAIWS/**","anon");
@@ -118,6 +118,7 @@ public class ShiroConfig {
         map.put("/translate/**","anon");
         map.put("/csrf","anon");
         map.put("/druid/**","anon");
+        map.put("/api/resume/templates","anon");
         //swagger资源过滤
 //        map.put("/swagger-resources/**","anon");
 //        map.put("/webjars/**","anon");

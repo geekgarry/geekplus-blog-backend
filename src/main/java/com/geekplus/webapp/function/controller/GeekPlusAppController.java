@@ -12,6 +12,7 @@ import com.geekplus.webapp.common.service.ChatGPTService;
 import com.geekplus.webapp.common.service.IPRecordService;
 import com.geekplus.webapp.function.entity.*;
 import com.geekplus.webapp.function.service.*;
+import com.geekplus.webapp.system.service.SysConfigService;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import com.geekplus.common.annotation.Log;
@@ -26,6 +27,7 @@ import com.geekplus.common.util.file.FileUtils;
 import com.geekplus.common.util.uuid.IdUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -72,6 +74,8 @@ public class GeekPlusAppController extends BaseController {
     private IGpNoticeService gpNoticeService;
     @Resource
     private GpMusicService gpMusicService;
+    @Resource
+    private SysConfigService sysConfigService;
     @Resource
     private VisitCounter visitCounter;
     //@Resource
@@ -179,6 +183,62 @@ public class GeekPlusAppController extends BaseController {
         }
         //log.info("每日一句名言："+object.toString());
         return Result.success(object);
+    }
+
+    /**
+     * 全站点击飘字文案（后台可配）
+     * 系统参数键：site.click.text
+     * 支持 JSON 数组、逗号/换行/竖线分隔；未配置时回退今日名言
+     */
+    @GetMapping("/getClickTextWords")
+    public Result getClickTextWords()
+    {
+        List<String> words = new ArrayList<>();
+        try {
+            String configValue = sysConfigService.selectSysConfigByKey("site.click.text");
+            if (StringUtils.hasText(configValue)) {
+                words.addAll(parseClickTextConfig(configValue.trim()));
+            }
+        } catch (Exception e) {
+            log.warn("读取点击飘字配置失败: {}", e.getMessage());
+        }
+        if (words.isEmpty()) {
+            try {
+                Object famous = HtmlUtil.delHTMLTag(HttpClientUtil.get("https://v.api.aa1.cn/api/api-wenan-mingrenmingyan/index.php?aa1=text"));
+                if (famous != null && StringUtils.hasText(String.valueOf(famous))) {
+                    words.add(String.valueOf(famous).trim());
+                }
+            } catch (Exception e) {
+                log.warn("回退今日名言失败: {}", e.getMessage());
+            }
+        }
+        return Result.success(words);
+    }
+
+    private List<String> parseClickTextConfig(String raw) {
+        List<String> list = new ArrayList<>();
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+            try {
+                List<String> arr = JsonObjectUtil.jsonToList(raw, String.class);
+                if (arr != null && !arr.isEmpty()) {
+                    for (String item : arr) {
+                        if (StringUtils.hasText(item)) {
+                            list.add(item.trim());
+                        }
+                    }
+                    return list;
+                }
+            } catch (Exception ignored) {
+                // fall through to delimiter split
+            }
+        }
+        String[] parts = raw.split("[,，\\n\\r|;；]+");
+        for (String part : parts) {
+            if (StringUtils.hasText(part)) {
+                list.add(part.trim());
+            }
+        }
+        return list;
     }
 
     /**

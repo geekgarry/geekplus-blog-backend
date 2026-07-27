@@ -17,8 +17,11 @@ import com.geekplus.common.util.http.IPUtils;
 import com.geekplus.common.util.openai.GetClientName;
 import com.geekplus.common.util.string.StringUtils;
 import com.geekplus.webapp.common.monitor.entity.SysUserOnline;
+import com.geekplus.webapp.common.service.AiService;
 import com.geekplus.webapp.common.service.ChatGPTService;
 import com.geekplus.webapp.common.service.GeminiChatService;
+import com.geekplus.webapp.common.service.GenericAiService;
+import com.geekplus.common.dto.GenericAiRequest;
 import com.geekplus.webapp.function.entity.ChatAILog;
 import com.geekplus.webapp.function.service.IChatAILogService;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -56,7 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 @Slf4j
 @RestController
-@RequestMapping("/AIBot")
+@RequestMapping("/ai")
 public class ChatAIController extends BaseController {
     //ChatGPTAI操作服务类
     @Resource
@@ -72,6 +75,11 @@ public class ChatAIController extends BaseController {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private GenericAiService genericAiService;
+    @Resource
+    private AiService aiService;
 
 //    public ChatAIController(AsyncProcessor asyncProcessor) {
 //        this.asyncProcessor = asyncProcessor;
@@ -107,6 +115,36 @@ public class ChatAIController extends BaseController {
                 return Result.success("这是一个异步测试的例子");
             }
         };
+    }
+
+    /**
+     * 通用 AI 请求：按 AI 源组装 URL+Key，支持 GET/POST。
+     * previewOnly=true 时只预览不发请求。
+     */
+    @PostMapping("/generic/request")
+    public Result genericRequest(@RequestBody GenericAiRequest request) {
+        try {
+            if (request != null && Boolean.TRUE.equals(request.getPreviewOnly())) {
+                return Result.success(genericAiService.preview(request));
+            }
+            return Result.success(genericAiService.execute(request));
+        } catch (Exception e) {
+            log.error("通用 AI 请求失败", e);
+            return Result.error(e.getMessage() == null ? "请求失败" : e.getMessage());
+        }
+    }
+
+    /**
+     * 通用聊天（走 AiService / AIProvider，按源自动选 gemini 或 chatgpt）
+     */
+    @PostMapping("/generic/chat")
+    public Result genericChat(@RequestBody ChatPrompt chatPrompt) {
+        try {
+            return Result.success(aiService.chat(chatPrompt));
+        } catch (Exception e) {
+            log.error("通用 AI 聊天失败", e);
+            return Result.error(e.getMessage() == null ? "聊天失败" : e.getMessage());
+        }
     }
 
     /**

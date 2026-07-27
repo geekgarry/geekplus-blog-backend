@@ -18,6 +18,7 @@ import eu.bitwalker.useragentutils.UserAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -41,8 +42,8 @@ import java.util.concurrent.TimeUnit;
 public class ChatGPTService {
 //    private static final Logger log = LoggerFactory.getLogger(GetClientName.class);
 
-    //@Value("${openai.api.key}")
-    //private String openAiKey;
+    @Value("${ai.chatgpt.api-key:}")
+    private String openAiKey;
 
     @Resource
     private IChatAILogService chatgptLogService;

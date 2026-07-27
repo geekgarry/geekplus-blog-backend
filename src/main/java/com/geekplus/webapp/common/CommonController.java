@@ -5,8 +5,6 @@ import com.geekplus.common.util.http.ServletUtil;
 import com.geekplus.framework.jwtshiro.JwtUtil;
 import com.geekplus.webapp.common.service.SysUserTokenService;
 import com.geekplus.webapp.function.service.IGpArticlesService;
-import com.geekplus.webapp.system.entity.ResourceMetaData;
-import com.geekplus.webapp.system.service.ResourceMetaDataService;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
 import org.springframework.http.*;
@@ -59,9 +57,6 @@ public class CommonController
 
     @Autowired
     private IGpArticlesService  articlesService;
-
-    @Autowired
-    private ResourceMetaDataService resourceService;
 
     @Autowired
     private WebAppConfig appConfig;

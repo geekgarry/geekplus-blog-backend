@@ -24,6 +24,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.*;
 
 /**
@@ -33,25 +36,64 @@ import java.util.*;
  */
 @Slf4j
 public class GeminiUtils {
-    //v1：API 的稳定版。稳定版本中的功能在主要版本的生命周期内完全受支持。如果存在任何重大更改，则会创建 API 的下一个主要版本，并在合理的一段时间后弃用现有版本。可以在不更改主要版本的情况下为该 API 引入非破坏性更改。
-    //v1beta：此版本包含抢先体验版功能，这些功能可能正在开发中，并且可能会随时发生快速重大更改。也无法保证 Beta 版中的功能将迁移到稳定版。由于这种不稳定性，您不应使用此版本发布生产应用。
-    //HARM_CATEGORY_DANGEROUS_CONTENT	<HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: 10>
-    //HARM_CATEGORY_HARASSMENT	<HarmCategory.HARM_CATEGORY_HARASSMENT: 7>
-    //HARM_CATEGORY_HATE_SPEECH	<HarmCategory.HARM_CATEGORY_HATE_SPEECH: 8>
-    //HARM_CATEGORY_SEXUALLY_EXPLICIT	<HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: 9>
-    //HARM_CATEGORY_UNSPECIFIED	<HarmCategory.HARM_CATEGORY_UNSPECIFIED: 0>
-    //HARM_BLOCK_THRESHOLD_UNSPECIFIED	0 Threshold is unspecified.
-    //BLOCK_LOW_AND_ABOVE	1 Content with NEGLIGIBLE will be allowed.
-    //BLOCK_MEDIUM_AND_ABOVE	2 Content with NEGLIGIBLE and LOW will be allowed.
-    //BLOCK_ONLY_HIGH	3 Content with NEGLIGIBLE, LOW, and MEDIUM will be allowed.
-    //BLOCK_NONE	4 All content will be allowed.
+    /** 免费档推荐默认模型（Pro 免费配额常为 0，见 rate-limits） */
+    public static final String DEFAULT_MODEL = "gemini-2.5-flash";
+    public static final String DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
+    /** 官方 REST 免费可用的文本模型（按需在后台切换） */
+    public static final String[] FREE_TIER_MODELS = {
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite"
+    };
+
+    public static String buildGenerateUrl(String baseUrl, String model) {
+        String base = normalizeBaseUrl(baseUrl);
+        String m = (model == null || model.trim().isEmpty()) ? DEFAULT_MODEL : model.trim();
+        if (m.startsWith("models/")) {
+            m = m.substring("models/".length());
+        }
+        return base + "/models/" + m + ":generateContent";
+    }
+
+    public static String buildStreamUrl(String baseUrl, String model) {
+        String base = normalizeBaseUrl(baseUrl);
+        String m = (model == null || model.trim().isEmpty()) ? DEFAULT_MODEL : model.trim();
+        if (m.startsWith("models/")) {
+            m = m.substring("models/".length());
+        }
+        return base + "/models/" + m + ":streamGenerateContent?alt=sse";
+    }
+
+    private static String friendlyHttpError(org.springframework.web.client.HttpStatusCodeException e) {
+        int code = e.getRawStatusCode();
+        String body = e.getResponseBodyAsString();
+        String detail = null;
+        try {
+            JSONObject root = JSONObject.parseObject(body);
+            if (root != null && root.getJSONObject("error") != null) {
+                detail = root.getJSONObject("error").getString("message");
+            }
+        } catch (Exception ignore) {
+            // ignore parse failure
+        }
+        if (code == 429) {
+            return "Gemini 配额不足或请求过于频繁（建议改用 gemini-2.5-flash / flash-lite）。"
+                    + (detail != null ? " " + detail : " 请稍后重试。");
+        }
+        if (code >= 500) {
+            return "Gemini 服务暂时不可用（" + code + "），请稍后重试。";
+        }
+        return detail != null ? detail : ("Gemini 请求失败：" + code);
+    }
+
     //轻量级API
     //curl \
     //-H 'Content-Type: application/json' \
     //-d '{"contents":[{"parts":[{"text":"Explain how AI works"}]}]}' \
-    //-X POST 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=YOUR_API_KEY'
+    //-X POST 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_API_KEY'
     //streamGenerateContent?alt=sse
-    String apiUrl="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=YOUR_API_KEY";
+    String apiUrl = DEFAULT_BASE_URL + "/models/" + DEFAULT_MODEL + ":generateContent?key=YOUR_API_KEY";
 
     private JSONObject requestData;
 
@@ -71,7 +113,7 @@ public class GeminiUtils {
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.setAll(headerMap);
         if(url==null||"".equals(url)){
-            url="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
+            url = buildGenerateUrl(null, DEFAULT_MODEL) + "?key=";
         }
         String requestJson="{\"text: \""+chatContent+"\"}";//构造RequestBody请求体
         HttpEntity<String> entity = new HttpEntity<>(requestJson, httpHeaders);
@@ -81,9 +123,13 @@ public class GeminiUtils {
     }
 
     //Gemini AI Chat请求方法,构造请求json或参数使用字符串拼接的方式
-    public static String postGemini(ChatPrompt chatPrompt,String apiKey) throws IOException {
+    public static String postGemini(ChatPrompt chatPrompt, String apiKey) throws IOException {
+        return postGemini(chatPrompt, apiKey, DEFAULT_MODEL, null);
+    }
+
+    public static String postGemini(ChatPrompt chatPrompt, String apiKey, String model, String baseUrl) throws IOException {
         String geminiReply = null;
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
+        String url = buildGenerateUrl(baseUrl, model);
         RestTemplate client = new RestTemplate();
         HttpHeaders httpHeaders = new HttpHeaders();
         //httpHeaders.setAll(headerMap);
@@ -164,27 +210,30 @@ public class GeminiUtils {
                 entity = new HttpEntity<MultiValueMap<String,Object>>(formChatPromptMap, httpHeaders);
             }
         }
-        ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, entity, String.class);
-        String candidatesResponse=response.getBody();
-        log.info("响应数据 {}", response.getBody());
-        JSONObject jsonObject = JSONObject.parseObject(candidatesResponse);
-        if (!CollectionUtils.isEmpty(jsonObject.getJSONArray("candidates"))) {
-            JSONArray candidates = jsonObject.getJSONArray("candidates");
-            if (candidates.getJSONObject(0).containsKey("content")) {
-                JSONObject candidatesContent = candidates.getJSONObject(0).getJSONObject("content");
-                JSONArray contentParts = candidatesContent.getJSONArray("parts");
-                String contentRole = candidatesContent.getString("role");
-                geminiReply = contentParts.getJSONObject(0).getString("text");
-                //String messagepre = messageResponseBody.getChoices().get(0).getText();
-                //AIReplyText.substring(2);
+        try {
+            ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, entity, String.class);
+            String candidatesResponse = response.getBody();
+            log.info("Gemini model={} 响应数据 {}", model, candidatesResponse);
+            JSONObject jsonObject = JSONObject.parseObject(candidatesResponse);
+            if (!CollectionUtils.isEmpty(jsonObject.getJSONArray("candidates"))) {
+                JSONArray candidates = jsonObject.getJSONArray("candidates");
+                if (candidates.getJSONObject(0).containsKey("content")) {
+                    JSONObject candidatesContent = candidates.getJSONObject(0).getJSONObject("content");
+                    JSONArray contentParts = candidatesContent.getJSONArray("parts");
+                    geminiReply = contentParts.getJSONObject(0).getString("text");
+                } else {
+                    geminiReply = "抱歉，我可能出了点问题，请稍后再试！";
+                }
             } else {
-                geminiReply = "抱歉，我可能出了点问题，请稍后再试！";
+                log.info("错误消息：{}", jsonObject);
+                JSONObject errorData = jsonObject.getJSONObject("error");
+                geminiReply = errorData != null && errorData.get("message") != null
+                        ? errorData.get("message").toString()
+                        : "Gemini 返回空结果";
             }
-        }else{
-            log.info("错误消息："+jsonObject.toString());
-            //{"error": { "code": 200, "message": "", "status": "" }}
-            JSONObject errorData = jsonObject.getJSONObject("error");
-            geminiReply = errorData.get("message").toString();
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            log.error("Gemini HTTP 错误 model={} status={}", model, e.getRawStatusCode(), e);
+            geminiReply = friendlyHttpError(e);
         }
         return geminiReply;
     }
@@ -195,7 +244,150 @@ public class GeminiUtils {
     }
 
     public static Object getAllGeminiModels(String apiKey) throws Exception {
-        return HttpUtils.get("https://generativelanguage.googleapis.com/v1beta/models?key="+apiKey);
+        return listModels(apiKey, null, 1000, null);
+    }
+
+    /** 规范化 Gemini API baseUrl，避免误配成 generateContent 完整路径 */
+    public static String normalizeBaseUrl(String baseUrl) {
+        String base = (baseUrl == null || baseUrl.trim().isEmpty())
+                ? DEFAULT_BASE_URL
+                : baseUrl.trim().replaceAll("/+$", "");
+        // 误配：.../v1beta/models/xxx:generateContent → 截到 .../v1beta
+        int modelsIdx = base.indexOf("/models/");
+        if (modelsIdx > 0) {
+            base = base.substring(0, modelsIdx);
+        }
+        // 误配：.../v1beta/models → 去掉末尾 /models
+        if (base.endsWith("/models")) {
+            base = base.substring(0, base.length() - "/models".length());
+        }
+        return base;
+    }
+
+    /**
+     * GET https://generativelanguage.googleapis.com/v1beta/models?key=$GEMINI_API_KEY
+     * 官方 Shell 示例：key 放在 URL 查询参数中。
+     * @see <a href="https://ai.google.dev/api/models">models.list</a>
+     */
+    public static String listModels(String apiKey, String baseUrl, Integer pageSize, String pageToken) throws Exception {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("Gemini API Key 为空");
+        }
+        String base = normalizeBaseUrl(baseUrl);
+        // 与文档一致：.../v1beta/models?key=...
+        StringBuilder url = new StringBuilder(base)
+                .append("/models?key=")
+                .append(URLEncoder.encode(apiKey.trim(), "UTF-8"));
+        if (pageSize != null && pageSize > 0) {
+            url.append("&pageSize=").append(Math.min(pageSize, 1000));
+        }
+        if (pageToken != null && !pageToken.isEmpty()) {
+            url.append("&pageToken=").append(URLEncoder.encode(pageToken, "UTF-8"));
+        }
+        return geminiGetByUrl(url.toString());
+    }
+
+    /**
+     * GET https://generativelanguage.googleapis.com/v1beta/models/{model}?key=$GEMINI_API_KEY
+     * @see <a href="https://ai.google.dev/api/models">models.get</a>
+     */
+    public static String getModel(String apiKey, String baseUrl, String modelName) throws Exception {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            throw new IllegalArgumentException("Gemini API Key 为空");
+        }
+        String base = normalizeBaseUrl(baseUrl);
+        String name = modelName == null ? "" : modelName.trim();
+        if (name.startsWith("models/")) {
+            name = name.substring("models/".length());
+        }
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("modelName 不能为空");
+        }
+        String url = base + "/models/" + name + "?key=" + URLEncoder.encode(apiKey.trim(), "UTF-8");
+        return geminiGetByUrl(url);
+    }
+
+    /** GET 已含 key 查询参数的完整 URL（与浏览器直接访问一致） */
+    private static String geminiGetByUrl(String url) throws Exception {
+        HttpURLConnection conn = null;
+        BufferedReader reader = null;
+        try {
+            conn = (HttpURLConnection) new URL(url).openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Accept", "application/json");
+            conn.setConnectTimeout(20000);
+            conn.setReadTimeout(60000);
+            // 重要：GET 不要 setDoOutput(true)，否则部分环境会异常/空响应
+            conn.setDoOutput(false);
+            conn.setDoInput(true);
+            conn.connect();
+
+            int code = conn.getResponseCode();
+            InputStream stream = code >= 400 ? conn.getErrorStream() : conn.getInputStream();
+            if (stream == null) {
+                throw new IllegalStateException("Gemini GET 无响应流，HTTP " + code);
+            }
+            reader = new BufferedReader(new InputStreamReader(stream, "UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line);
+            }
+            String body = sb.toString();
+            if (code >= 400) {
+                String safeUrl = url.replaceAll("([?&]key=)[^&]*", "$1***");
+                log.error("Gemini GET 失败 url={} status={} body={}", safeUrl, code, body);
+                try {
+                    JSONObject root = JSONObject.parseObject(body);
+                    if (root != null && root.getJSONObject("error") != null) {
+                        throw new IllegalStateException(root.getJSONObject("error").getString("message"));
+                    }
+                } catch (IllegalStateException ex) {
+                    throw ex;
+                } catch (Exception ignore) {
+                    // fallthrough
+                }
+                throw new IllegalStateException("Gemini 请求失败：" + code);
+            }
+            return body;
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (Exception ignore) {
+                    // ignore
+                }
+            }
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+    }
+
+    /**
+     * POST .../models/{model}:countTokens
+     */
+    public static String countTokens(String apiKey, String baseUrl, String modelName, String text) throws Exception {
+        String base = normalizeBaseUrl(baseUrl);
+        String name = modelName == null ? DEFAULT_MODEL : modelName.trim();
+        if (name.startsWith("models/")) {
+            name = name.substring("models/".length());
+        }
+        String url = base + "/models/" + name + ":countTokens";
+        RestTemplate client = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/json");
+        headers.add("x-goog-api-key", apiKey);
+        Map<String, Object> body = new HashMap<>();
+        Map<String, Object> content = createMsgPromptMap(null, text == null ? "" : text, null, null);
+        body.put("contents", Collections.singletonList(content));
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+        try {
+            ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, entity, String.class);
+            return response.getBody();
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            throw new IllegalStateException(friendlyHttpError(e), e);
+        }
     }
 
     //Gemini AI Chat请求方法
@@ -248,8 +440,12 @@ public class GeminiUtils {
 
     //Gemini AI Chat请求方法
     public static String postGeminiHistory(ChatPrompt chatPrompt, String apiKey) throws IOException {
+        return postGeminiHistory(chatPrompt, apiKey, DEFAULT_MODEL, null);
+    }
+
+    public static String postGeminiHistory(ChatPrompt chatPrompt, String apiKey, String model, String baseUrl) throws IOException {
         String geminiReply=null;
-        String url="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+        String url = buildGenerateUrl(baseUrl, model);
         RestTemplate client = new RestTemplate();
         HttpHeaders httpHeaders = new HttpHeaders();
         //httpHeaders.setAll(headerMap);
@@ -346,24 +542,29 @@ public class GeminiUtils {
                 entity = new HttpEntity<MultiValueMap<String,Object>>(formChatPromptMap, httpHeaders);
             }
         }
-        ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, entity, String.class);
-        log.info("响应数据 {}",response.getBody());
-        JSONObject jsonObject = JSONObject.parseObject(response.getBody());
-        if (!CollectionUtils.isEmpty(jsonObject.getJSONArray("candidates"))) {
-            JSONArray candidates = jsonObject.getJSONArray("candidates");
-            if (candidates.getJSONObject(0).containsKey("content")) {
-                JSONObject candidatesContent = candidates.getJSONObject(0).getJSONObject("content");
-                JSONArray contentParts = candidatesContent.getJSONArray("parts");
-                String contentRole = candidatesContent.getString("role");
-                geminiReply = contentParts.getJSONObject(0).getString("text");
+        try {
+            ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, entity, String.class);
+            log.info("Gemini history model={} 响应数据 {}", model, response.getBody());
+            JSONObject jsonObject = JSONObject.parseObject(response.getBody());
+            if (!CollectionUtils.isEmpty(jsonObject.getJSONArray("candidates"))) {
+                JSONArray candidates = jsonObject.getJSONArray("candidates");
+                if (candidates.getJSONObject(0).containsKey("content")) {
+                    JSONObject candidatesContent = candidates.getJSONObject(0).getJSONObject("content");
+                    JSONArray contentParts = candidatesContent.getJSONArray("parts");
+                    geminiReply = contentParts.getJSONObject(0).getString("text");
+                } else {
+                    geminiReply = "抱歉，我可能出了点问题，请稍后再试！";
+                }
             } else {
-                geminiReply = "抱歉，我可能出了点问题，请稍后再试！";
+                log.info("错误消息：{}", jsonObject);
+                JSONObject errorData = jsonObject.getJSONObject("error");
+                geminiReply = errorData != null && errorData.get("message") != null
+                        ? errorData.get("message").toString()
+                        : "Gemini 返回空结果";
             }
-        }else{
-            log.info("错误消息：{}", jsonObject.toString());
-            //{"error": { "code": 200, "message": "", "status": "" }}
-            JSONObject errorData = jsonObject.getJSONObject("error");
-            geminiReply = errorData.get("message").toString();
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            log.error("Gemini history HTTP 错误 model={} status={}", model, e.getRawStatusCode(), e);
+            geminiReply = friendlyHttpError(e);
         }
         return geminiReply;
     }
