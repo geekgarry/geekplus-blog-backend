@@ -33,4 +33,11 @@ public interface IGpFileTransferService {
 
     /** 清理过期文件（定时任务） */
     int cleanupExpired();
+
+    /** 后台列表 */
+    java.util.List<GpFileTransfer> listForAdmin(Integer status, int limit);
+
+    /** 后台强制删除（库+盘） */
+    boolean forceDelete(Long id);
 }
+

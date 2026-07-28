@@ -82,4 +82,36 @@
             </if>
           )
     </select>
+
+    <select id="selectById" resultMap="GpFileTransferResult">
+        select * from gp_file_transfer where id = #{id} limit 1
+    </select>
+
+    <update id="clearStoredPath">
+        update gp_file_transfer
+        set stored_path = null, stored_name = null, update_time = now()
+        where id = #{id}
+    </update>
+
+    <select id="selectInactiveForPurge" resultMap="GpFileTransferResult">
+        select * from gp_file_transfer
+        where status = 0
+          and stored_path is not null
+          and stored_path &lt;&gt; ''
+        order by update_time asc
+        limit #{limit}
+    </select>
+
+    <select id="selectListForAdmin" resultMap="GpFileTransferResult">
+        select * from gp_file_transfer
+        <where>
+            <if test="status != null">
+                status = #{status}
+            </if>
+        </where>
+        order by id desc
+        limit #{limit}
+    </select>
+
 </mapper>
+

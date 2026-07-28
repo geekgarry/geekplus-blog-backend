@@ -15,13 +15,22 @@ public interface GpFileTransferMapper {
 
     GpFileTransfer selectByShareCode(@Param("shareCode") String shareCode);
 
+    GpFileTransfer selectById(@Param("id") Long id);
+
     int increaseDownloadCount(@Param("id") Long id);
 
     int softDeleteById(@Param("id") Long id);
 
     int softDeleteExpired(@Param("now") Date now);
 
+    int clearStoredPath(@Param("id") Long id);
+
     List<GpFileTransfer> selectExpiredActive(@Param("now") Date now, @Param("limit") int limit);
+
+    /** 已失效且仍保留路径的记录（用于清孤儿文件） */
+    List<GpFileTransfer> selectInactiveForPurge(@Param("limit") int limit);
+
+    List<GpFileTransfer> selectListForAdmin(@Param("status") Integer status, @Param("limit") int limit);
 
     int countUploadsSince(@Param("fingerprint") String fingerprint,
                           @Param("clientIp") String clientIp,

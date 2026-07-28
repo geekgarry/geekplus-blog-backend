@@ -16,8 +16,12 @@ public class FileTransferCleanupTask {
     @Autowired
     private IGpFileTransferService transferService;
 
-    /** 每 20 分钟清理一批过期文件 */
-    @Scheduled(cron = "0 */20 * * * ?")
+    /** 每 5 分钟清理一批过期文件 */
+    //@Scheduled(cron = "0 */5 * * * ?")
+    /** 每小时整点执行一次 */
+    //@Scheduled(cron = "0 0 * * * ?")
+    /** 每小时的第 30 分钟执行 */
+    @Scheduled(cron = "0 30 * * * ?")
     public void cleanup() {
         try {
             int n = transferService.cleanupExpired();

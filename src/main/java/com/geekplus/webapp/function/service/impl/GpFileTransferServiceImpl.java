@@ -14,10 +14,10 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.*;
 
@@ -168,15 +168,15 @@ public class GpFileTransferServiceImpl implements IGpFileTransferService {
             throw new IllegalArgumentException("下载次数已用尽");
         }
 
-        File file = new File(WebAppConfig.getUploadPath() + "/" + row.getStoredPath());
-        if (!file.exists() || !file.isFile()) {
+        File file = resolveDiskFile(row);
+        if (file == null || !file.exists() || !file.isFile()) {
+            transferMapper.softDeleteById(row.getId());
             throw new IllegalStateException("文件已失效或不存在");
         }
 
         transferMapper.increaseDownloadCount(row.getId());
         if (row.getBurnAfterRead() != null && row.getBurnAfterRead() == 1) {
             transferMapper.softDeleteById(row.getId());
-            // 阅后即焚：本次仍可下载，随后删除磁盘
         }
 
         String encoded = URLEncoder.encode(row.getOriginalName(), StandardCharsets.UTF_8.name()).replaceAll("\\+", "%20");
@@ -184,18 +184,17 @@ public class GpFileTransferServiceImpl implements IGpFileTransferService {
         response.setContentType(StringUtils.hasText(row.getContentType()) ? row.getContentType() : "application/octet-stream");
         response.setHeader("Content-Disposition", "attachment; filename=\"" + encoded + "\"; filename*=UTF-8''" + encoded);
         response.setContentLengthLong(file.length());
-        try (FileInputStream in = new FileInputStream(file); OutputStream out = response.getOutputStream()) {
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) != -1) {
-                out.write(buf, 0, n);
-            }
+        response.setHeader("Accept-Ranges", "bytes");
+        response.setHeader("Cache-Control", "private, no-store");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        try (OutputStream out = response.getOutputStream()) {
+            Files.copy(file.toPath(), out);
             out.flush();
         }
 
         if (row.getBurnAfterRead() != null && row.getBurnAfterRead() == 1) {
-            //noinspection ResultOfMethodCallIgnored
-            file.delete();
+            deleteDiskQuietly(file);
+            transferMapper.clearStoredPath(row.getId());
         }
     }
 
@@ -205,42 +204,59 @@ public class GpFileTransferServiceImpl implements IGpFileTransferService {
         if (row == null || row.getStatus() == null || row.getStatus() != 1) {
             return false;
         }
-        // 仅允许同一指纹或机器号撤销自己的分享
         boolean ok = (StringUtils.hasText(fingerprint) && fingerprint.equals(row.getFingerprint()))
                 || (StringUtils.hasText(machineId) && machineId.equals(row.getMachineId()));
         if (!ok) {
             return false;
         }
         transferMapper.softDeleteById(row.getId());
-        try {
-            File disk = new File(WebAppConfig.getUploadPath() + "/" + row.getStoredPath());
-            if (disk.exists()) {
-                //noinspection ResultOfMethodCallIgnored
-                disk.delete();
-            }
-        } catch (Exception ignore) {
-        }
+        deleteDiskQuietly(resolveDiskFile(row));
+        transferMapper.clearStoredPath(row.getId());
         return true;
     }
 
     @Override
     public int cleanupExpired() {
         Date now = new Date();
-        List<GpFileTransfer> list = transferMapper.selectExpiredActive(now, 200);
         int n = 0;
-        for (GpFileTransfer row : list) {
-            try {
-                File disk = new File(WebAppConfig.getUploadPath() + "/" + row.getStoredPath());
-                if (disk.exists()) {
-                    //noinspection ResultOfMethodCallIgnored
-                    disk.delete();
-                }
-            } catch (Exception ignore) {
-            }
+        List<GpFileTransfer> expired = transferMapper.selectExpiredActive(now, 200);
+        for (GpFileTransfer row : expired) {
+            deleteDiskQuietly(resolveDiskFile(row));
             transferMapper.softDeleteById(row.getId());
+            transferMapper.clearStoredPath(row.getId());
             n++;
         }
+        List<GpFileTransfer> inactive = transferMapper.selectInactiveForPurge(200);
+        for (GpFileTransfer row : inactive) {
+            File disk = resolveDiskFile(row);
+            if (disk != null && disk.exists()) {
+                deleteDiskQuietly(disk);
+                n++;
+            }
+            transferMapper.clearStoredPath(row.getId());
+        }
         return n;
+    }
+
+    @Override
+    public List<GpFileTransfer> listForAdmin(Integer status, int limit) {
+        int lim = limit <= 0 ? 50 : Math.min(limit, 200);
+        return transferMapper.selectListForAdmin(status, lim);
+    }
+
+    @Override
+    public boolean forceDelete(Long id) {
+        if (id == null) {
+            return false;
+        }
+        GpFileTransfer row = transferMapper.selectById(id);
+        if (row == null) {
+            return false;
+        }
+        deleteDiskQuietly(resolveDiskFile(row));
+        transferMapper.softDeleteById(id);
+        transferMapper.clearStoredPath(id);
+        return true;
     }
 
     private GpFileTransfer requireActive(String shareCode) {
@@ -252,10 +268,32 @@ public class GpFileTransferServiceImpl implements IGpFileTransferService {
             throw new IllegalArgumentException("链接不存在或已失效");
         }
         if (row.getExpireAt() != null && row.getExpireAt().before(new Date())) {
+            deleteDiskQuietly(resolveDiskFile(row));
             transferMapper.softDeleteById(row.getId());
+            transferMapper.clearStoredPath(row.getId());
             throw new IllegalArgumentException("链接已过期");
         }
         return row;
+    }
+
+    private File resolveDiskFile(GpFileTransfer row) {
+        if (row == null || !StringUtils.hasText(row.getStoredPath())) {
+            return null;
+        }
+        return new File(WebAppConfig.getUploadPath() + "/" + row.getStoredPath());
+    }
+
+    private void deleteDiskQuietly(File file) {
+        if (file == null) {
+            return;
+        }
+        try {
+            if (file.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                file.delete();
+            }
+        } catch (Exception ignore) {
+        }
     }
 
     private int remainingDownloads(GpFileTransfer row) {
