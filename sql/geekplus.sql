@@ -648,6 +648,16 @@ CREATE TABLE `resume_template` (
   UNIQUE KEY `key` (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (1, 'template1', '简约通用', '适合所有行业的标准排版，清晰明了。', 0, NULL, '2026-03-17 23:03:40', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (2, 'template2', '现代专业', '带有侧边栏的现代设计，适合互联网/设计行业。', 1, NULL, '2026-03-17 23:03:40', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (3, 'template3', '表格样式', '传统的表格布局，适合展示详细信息。', 0, NULL, '2026-03-17 23:39:27', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (4, 'template4', 'PPT风格', 'PPT风格的简历模板。', 1, NULL, '2026-03-17 23:40:03', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (5, 'template5', '商务蓝调', '深蓝头图与圆角色块标题，适合互联网求职展示。', 0, NULL, '2026-07-20 08:43:15', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (6, 'template6', '清新卡片', '浅蓝背景白卡片，斜杠标题线，清爽现代。', 0, NULL, '2026-07-20 08:43:15', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (7, 'template7', '图标专业', '圆形图标章节与侧边丝带，专业稳重。', 0, NULL, '2026-07-20 08:43:15', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (8, 'template8', '斜切标签', '居中头像卡片与斜切色块标题，辨识度高。', 1, NULL, '2026-07-20 08:43:15', NULL, 1);
+INSERT INTO `resume_template` (`id`, `key`, `name`, `description`, `is_vip`, `layout_json`, `created_at`, `updated_at`, `readonly`) VALUES (9, 'template9', '普通样式', '通过后台拖拽生成的动态模板示例。', 0, '{\"fontColor\": \"#333333\", \"layoutType\": \"two-column\", \"mainBlocks\": [{\"id\": \"2\", \"type\": \"summary\"}, {\"id\": \"3\", \"type\": \"work\"}, {\"id\": \"4\", \"type\": \"projects\"}], \"themeColor\": \"#0ea5e9\", \"sidebarBlocks\": [{\"id\": \"1773763037560\", \"type\": \"header\"}, {\"id\": \"5\", \"type\": \"education\"}, {\"id\": \"6\", \"type\": \"skills\"}], \"backgroundColor\": \"#ffffff\", \"sidebarPosition\": \"left\", \"sidebarBackgroundColor\": \"#f8fafc\"}', '2026-07-31 23:03:40', NULL, 0);
+
 -- AI 源管理表：后台可配置多提供方 / 模型并切换默认源
 CREATE TABLE IF NOT EXISTS ai_source (
   id          BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,

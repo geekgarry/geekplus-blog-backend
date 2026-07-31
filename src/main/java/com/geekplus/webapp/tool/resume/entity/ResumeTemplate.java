@@ -12,6 +12,8 @@ public class ResumeTemplate implements Serializable {
     private String name;
     private String description;
     private String layoutJson;
+    private Integer isVip;
+    private Integer readonly;
     private Date updatedAt;
     private Date createdAt;
 }
