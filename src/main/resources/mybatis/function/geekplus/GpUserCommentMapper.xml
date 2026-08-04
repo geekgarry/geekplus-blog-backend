@@ -84,6 +84,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="listReplyArticleComment" resultMap="GpUserCommentResult">
         <include refid="selectGpUserCommentVo"/>
         where parent_id=#{id} ORDER BY create_time ASC
+	</select>
+
+    <select id="selectChildrenByParentIds" resultMap="GpUserCommentResult">
+        <include refid="selectGpUserCommentVo"/>
+        where parent_id in
+        <foreach collection="parentIds" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+        order by create_time asc
     </select>
 
 <!--    获取所有评论的条数-->
@@ -113,14 +122,21 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
             <if test="email != null  and email != ''"> and email = #{email}</if>
             <if test="website != null  and website != ''"> and website = #{website}</if>
-            <if test="content != null  and content != ''"> and content = #{content}</if>
+            <if test="content != null  and content != ''"> and content like concat('%', #{content}, '%')</if>
             <if test="topicId != null  and topicId != ''"> and topic_id = #{topicId}</if>
             <if test="topicType != null  and topicType != ''"> and topic_type = #{topicType}</if>
             <if test="userId != null  and userId != ''"> and user_id = #{userId}</if>
+            <if test="ownUserIds != null and ownUserIds.size() &gt; 0">
+                and user_id in
+                <foreach collection="ownUserIds" item="uid" open="(" separator="," close=")">
+                    #{uid}
+                </foreach>
+            </if>
             <if test="parentId != null"> and parent_id = #{parentId}</if>
             <if test="replyName != null  and replyName != ''"> and reply_name = #{replyName}</if>
             <if test="isDisplay != null"> and is_display = #{isDisplay}</if>
         </where>
+        order by create_time desc
     </select>
 
     <select id="selectGpUserCommentById" parameterType="Long" resultMap="GpUserCommentResult">

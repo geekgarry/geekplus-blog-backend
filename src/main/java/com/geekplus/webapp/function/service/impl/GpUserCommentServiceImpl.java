@@ -47,6 +47,9 @@ public class GpUserCommentServiceImpl implements IGpUserCommentService
     public List<GpUserComment> selectGpUserCommentList(GpUserComment gpUserComment)
     {
         List<GpUserComment> list=gpUserCommentMapper.selectGpUserCommentList(gpUserComment);
+        if (gpUserComment.getOwnUserIds() != null && !gpUserComment.getOwnUserIds().isEmpty()) {
+            return list;
+        }
         return buildTreeList(list);
     }
 
@@ -161,13 +164,33 @@ public class GpUserCommentServiceImpl implements IGpUserCommentService
         return gpUserCommentMapper.deleteGpUserCommentById(id);
     }
 
-    //构造二树形目录，利用两次sql查询，适用于查询二层树形结构
+    //构造二树形目录：一次批量查子回复，避免 N+1
     public List<GpUserComment> buildTreeList(List<GpUserComment> listData){
-        for (GpUserComment item:listData) {
-            GpUserComment params = new GpUserComment();
-            params.setParentId(item.getId());
-            List<GpUserComment> childrenList = selectGpUserCommentList(params);
-            item.setChildren(childrenList);
+        if (listData == null || listData.isEmpty()) {
+            return listData;
+        }
+        List<Long> parentIds = new ArrayList<>();
+        for (GpUserComment item : listData) {
+            if (item != null && item.getId() != null) {
+                parentIds.add(item.getId());
+            }
+        }
+        if (parentIds.isEmpty()) {
+            return listData;
+        }
+        List<GpUserComment> children = gpUserCommentMapper.selectChildrenByParentIds(parentIds);
+        java.util.Map<Long, List<GpUserComment>> childMap = new java.util.HashMap<>();
+        if (children != null) {
+            for (GpUserComment c : children) {
+                if (c == null || c.getParentId() == null) {
+                    continue;
+                }
+                childMap.computeIfAbsent(c.getParentId(), k -> new ArrayList<>()).add(c);
+            }
+        }
+        for (GpUserComment item : listData) {
+            List<GpUserComment> kids = childMap.get(item.getId());
+            item.setChildren(kids == null ? new ArrayList<>() : kids);
         }
         return listData;
     }

@@ -104,4 +104,7 @@ public interface GpUserCommentMapper
      * @return 结果
      */
     public int deleteGpUserCommentByIds(Long[] ids);
+
+    /** 按多个父评论 ID 批量查回复（避免 N+1） */
+    java.util.List<GpUserComment> selectChildrenByParentIds(@org.apache.ibatis.annotations.Param("parentIds") java.util.Collection<Long> parentIds);
 }

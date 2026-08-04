@@ -703,4 +703,27 @@ WHERE NOT EXISTS (SELECT 1 FROM ai_source WHERE provider IN ('chatgpt', 'openai'
 -- INSERT INTO sys_menu(menu_name, parent_id, order_num, path, component, is_frame, menu_type, visible, status, perms, icon, create_by, create_time, remark)
 -- VALUES ('AI管理', 1, 10, 'ai', 'system/ai/index', 1, 'C', '0', '0', 'system:ai:list', 'component', 'admin', NOW(), 'Gemini模型与AI源');
 
+-- 角色与部门关联表：自定义数据权限（data_scope=2）时使用
+-- 执行前请确认库名；可重复执行（IF NOT EXISTS）
+CREATE TABLE IF NOT EXISTS sys_role_dept (
+  role_id bigint NOT NULL,
+  dept_id bigint NOT NULL,
+  PRIMARY KEY (role_id, dept_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 站点每日汇总：Redis 日统计归档落库，供运营看板历史趋势
+-- 可重复执行
+CREATE TABLE IF NOT EXISTS gp_site_daily_stats (
+  stat_date     date         NOT NULL COMMENT '统计日',
+  pv            bigint       NOT NULL DEFAULT 0 COMMENT '页面访问次数',
+  uv            bigint       NOT NULL DEFAULT 0 COMMENT '独立访客(HyperLogLog)',
+  new_views     bigint       NOT NULL DEFAULT 0 COMMENT '当日文章阅读增量',
+  new_likes     bigint       NOT NULL DEFAULT 0 COMMENT '当日点赞增量',
+  new_comments  bigint       NOT NULL DEFAULT 0 COMMENT '当日新增评论',
+  new_articles  int          NOT NULL DEFAULT 0 COMMENT '当日新增文章',
+  created_at    datetime     DEFAULT CURRENT_TIMESTAMP,
+  updated_at    datetime     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (stat_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站点每日运营汇总';
+
 SET FOREIGN_KEY_CHECKS = 1;

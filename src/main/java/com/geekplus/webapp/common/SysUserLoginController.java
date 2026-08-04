@@ -209,14 +209,17 @@ public class SysUserLoginController extends BaseController {
         Set permsSet= loginUser.getSysMenuList();
         List<SysMenu> menuList= SysMenuUtil.getParentMenuList(allMenuList.stream().filter(sysMenu -> !sysMenu.getMenuType().equals("B")).collect(Collectors.toList()));
         Set roleSet=loginUser.getSysRoleList().stream().filter(sysRole -> !StringUtils.isEmpty(sysRole.getRoleKey())).map(SysRoleVO::getRoleKey).collect(Collectors.toSet());
+        Set roleNameSet=loginUser.getSysRoleList().stream().filter(sysRole -> !StringUtils.isEmpty(sysRole.getRoleName())).map(SysRoleVO::getRoleName).collect(Collectors.toSet());
         //List<SysMenu> menuList=sysMenuService.getMenuTreeByUserId(loginUser.getUserId());
         map.put("username", userName);
         map.put("nickname", loginUser.getNickname());
         map.put("userId", loginUser.getUserId());
         map.put("avatar", loginUser.getAvatar());
+        map.put("userType", loginUser.getUserType());
         map.put("menuList", menuList);
         map.put("permsSet", permsSet);
         map.put("roles", roleSet);
+        map.put("roleNames", roleNameSet);
         return Result.success(map);
     }
 

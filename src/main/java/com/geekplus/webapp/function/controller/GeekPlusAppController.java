@@ -84,6 +84,8 @@ public class GeekPlusAppController extends BaseController {
     private WebAppConfig appConfig;
     @Autowired
     private SignatureUtil signer;
+    @Autowired(required = false)
+    private ISiteStatsService siteStatsService;
     // demo: 实例化，生产请通过配置注入 / KMS 获取 secretKey
     //private final SignatureUtil signer = new SignatureUtil("geek-plus-admin-123456", "v1");
 
@@ -319,6 +321,9 @@ public class GeekPlusAppController extends BaseController {
     public Result insertUserComment(@RequestBody GpUserComment gpUserComment){
         int size=gpUserCommentService.insertUserComment(gpUserComment);
         if(size>0){
+            if (siteStatsService != null) {
+                siteStatsService.recordNewComment();
+            }
             return Result.success();
         }else {
             return Result.error();
@@ -336,6 +341,9 @@ public class GeekPlusAppController extends BaseController {
     public Result insertArticleComment(@RequestBody GpUserComment gpUserComment){
         int size=gpArticleCommentService.insertArticleComment(gpUserComment);
         if(size>0){
+            if (siteStatsService != null) {
+                siteStatsService.recordNewComment();
+            }
             return Result.success();
         }else {
             return Result.error();
@@ -458,11 +466,13 @@ public class GeekPlusAppController extends BaseController {
       */
     @GetMapping("/visitInfo")
     public Result getVisitInfo() {
-        long visitCount = visitCounter.getCount();
-        //List<String> ipList = ipRecordService.getAllIPs();
-
         Result ajax = Result.success();
-        ajax.put("visitCount", visitCount);
+        java.util.Map<String, Object> period = visitCounter.getPeriodSnapshot();
+        ajax.putAll(period);
+        // 兼容旧字段
+        if (!ajax.containsKey("visitCount")) {
+            ajax.put("visitCount", visitCounter.getCount());
+        }
         return ajax;
     }
 
@@ -1030,7 +1040,19 @@ public class GeekPlusAppController extends BaseController {
       */
     @GetMapping("/updateArticleViewCount")
     public Result updateGpArticlesForUser(GpArticles gpArticles){
-        return toResult(gpArticlesService.updateGpArticlesForUser(gpArticles));
+        Result result = toResult(gpArticlesService.updateGpArticlesForUser(gpArticles));
+        if (siteStatsService != null && gpArticles != null && gpArticles.getId() != null) {
+            try {
+                // 点赞接口通常只传 likeCount；浏览上报只传 viewCount
+                if (gpArticles.getLikeCount() != null && gpArticles.getViewCount() == null) {
+                    siteStatsService.recordArticleLike(gpArticles.getId());
+                } else if (gpArticles.getViewCount() != null) {
+                    siteStatsService.recordArticleView(gpArticles.getId());
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return result;
     }
 
     /**

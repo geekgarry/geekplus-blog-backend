@@ -6,11 +6,13 @@ import com.geekplus.common.util.encrypt.SignatureUtil;
 import com.geekplus.common.util.string.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
-import org.springframework.data.annotation.Transient;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 功能：系统用户表 对象:sys_user
@@ -78,6 +80,7 @@ public class SysUser implements Serializable
     /**
      * 系统用户表 系统用户表
      */
+    @JsonIgnore
     private String password;
 
     /**
@@ -132,6 +135,28 @@ public class SysUser implements Serializable
 
     private SysDept sysDept;
 	private List<SysRole> sysRoleList;
+
+	/**
+	 * 查询参数：逗号分隔部门 ID（前端树节点含子部门时可直接传入）
+	 * 仅用于列表筛选，不落库
+	 */
+	private String deptIds;
+
+	/**
+	 * 为 true 且带 deptId 时，服务端用 selectChildrenDeptById 展开本部门及子孙
+	 */
+	private Boolean includeChildren;
+
+	/**
+	 * 展开后的部门 ID 列表；非空时 Mapper 使用 dept_id IN (...)
+	 */
+	private List<Long> deptIdList;
+
+	/**
+	 * 请求/切面扩展参数（如 DataScopeAspect 写入的 dataScope SQL 片段）
+	 */
+	@JsonIgnore
+	private Map<String, Object> params;
 
 	public boolean isAdmin()
 	{
@@ -405,6 +430,41 @@ public class SysUser implements Serializable
 
 	public void setSysRoleList(List<SysRole> sysRoleList) {
 		this.sysRoleList = sysRoleList;
+	}
+
+	public String getDeptIds() {
+		return deptIds;
+	}
+
+	public void setDeptIds(String deptIds) {
+		this.deptIds = deptIds;
+	}
+
+	public Boolean getIncludeChildren() {
+		return includeChildren;
+	}
+
+	public void setIncludeChildren(Boolean includeChildren) {
+		this.includeChildren = includeChildren;
+	}
+
+	public List<Long> getDeptIdList() {
+		return deptIdList;
+	}
+
+	public void setDeptIdList(List<Long> deptIdList) {
+		this.deptIdList = deptIdList;
+	}
+
+	public Map<String, Object> getParams() {
+		if (params == null) {
+			params = new HashMap<>();
+		}
+		return params;
+	}
+
+	public void setParams(Map<String, Object> params) {
+		this.params = params;
 	}
 
 	@Override

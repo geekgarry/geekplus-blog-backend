@@ -93,6 +93,11 @@ public class SysRole implements Serializable
 	private List<SysMenu> sysMenuList;
 
 	/**
+	 * 数据权限提交时勾选的部门 ID（仅接口入参，不落库）
+	 */
+	private Long[] deptIds;
+
+	/**
 	 *获取角色ID
 	 */
 	public Long getRoleId(){
@@ -281,6 +286,14 @@ public class SysRole implements Serializable
 
 	public void setSysMenuList(List<SysMenu> sysMenuList) {
 		this.sysMenuList = sysMenuList;
+	}
+
+	public Long[] getDeptIds() {
+		return deptIds;
+	}
+
+	public void setDeptIds(Long[] deptIds) {
+		this.deptIds = deptIds;
 	}
 
 	@Override

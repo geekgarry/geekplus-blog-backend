@@ -163,7 +163,8 @@ public class OperateLogAspect {
                 if (!isFilterObject(paramsArray[i]))
                 {
                     Object jsonObj = JSON.toJSON(paramsArray[i]);
-                    params += jsonObj.toString() + " ";
+                    params += String.valueOf(jsonObj);
+                    //params += jsonObj.toString() + " ";
                 }
             }
         }

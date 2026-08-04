@@ -47,6 +47,10 @@ public class GpArticleCommentServiceImpl implements IGpArticleCommentService
     public List<GpUserComment> selectGpArticleCommentList(GpUserComment gpUserComment)
     {
         List<GpUserComment> list=gpArticleCommentMapper.selectGpArticleCommentList(gpUserComment);
+        // 本人数据流：保持扁平，便于管理端卡片展示每一条自己的评论
+        if (gpUserComment.getOwnUserIds() != null && !gpUserComment.getOwnUserIds().isEmpty()) {
+            return list;
+        }
         return buildTreeList(list);
     }
 
@@ -161,13 +165,33 @@ public class GpArticleCommentServiceImpl implements IGpArticleCommentService
         return gpArticleCommentMapper.deleteGpArticleCommentById(id);
     }
 
-    //构造二树形目录
+    //构造二树形目录：一次批量查子回复，避免 N+1
     public List<GpUserComment> buildTreeList(List<GpUserComment> listData){
-        for (GpUserComment item:listData) {
-            GpUserComment params = new GpUserComment();
-            params.setParentId(item.getId());
-            List<GpUserComment> childrenList = selectGpArticleCommentList(params);
-            item.setChildren(childrenList);
+        if (listData == null || listData.isEmpty()) {
+            return listData;
+        }
+        List<Long> parentIds = new ArrayList<>();
+        for (GpUserComment item : listData) {
+            if (item != null && item.getId() != null) {
+                parentIds.add(item.getId());
+            }
+        }
+        if (parentIds.isEmpty()) {
+            return listData;
+        }
+        List<GpUserComment> children = gpArticleCommentMapper.selectChildrenByParentIds(parentIds);
+        java.util.Map<Long, List<GpUserComment>> childMap = new java.util.HashMap<>();
+        if (children != null) {
+            for (GpUserComment c : children) {
+                if (c == null || c.getParentId() == null) {
+                    continue;
+                }
+                childMap.computeIfAbsent(c.getParentId(), k -> new ArrayList<>()).add(c);
+            }
+        }
+        for (GpUserComment item : listData) {
+            List<GpUserComment> kids = childMap.get(item.getId());
+            item.setChildren(kids == null ? new ArrayList<>() : kids);
         }
         return listData;
     }

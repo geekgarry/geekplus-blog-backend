@@ -12,6 +12,7 @@ import com.geekplus.common.domain.Result;
 import com.geekplus.common.enums.BusinessType;
 import com.geekplus.common.enums.OperatorType;
 import com.geekplus.common.page.PageDataInfo;
+import com.geekplus.common.util.datetime.DateUtil;
 import com.geekplus.common.util.encrypt.SignatureUtil;
 import com.geekplus.common.util.http.ServletUtil;
 import com.geekplus.common.util.file.FileUploadUtils;
@@ -251,6 +252,9 @@ public class SysUserController extends BaseController {
         if (!file.isEmpty())
         {
             LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
+            if(StringUtils.isEmpty(fileFolder)) {
+                fileFolder = DateUtil.datePath();
+            }
             String avatar = FileUploadUtils.upload(appConfig.getAvatarPath() + File.separator + fileFolder, file);
             if (sysUserService.updateUserAvatar(loginUser.getUsername(), avatar))
             {

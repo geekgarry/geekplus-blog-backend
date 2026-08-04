@@ -5,6 +5,7 @@ import com.geekplus.common.core.controller.BaseController;
 import com.geekplus.common.domain.Result;
 import com.geekplus.webapp.system.entity.SysDept;
 import com.geekplus.webapp.system.service.SysDeptService;
+import com.geekplus.webapp.system.service.SysRoleDeptService;
 import com.geekplus.common.page.PageDataInfo;
 import com.github.pagehelper.PageInfo;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
@@ -22,6 +23,8 @@ import java.util.List;
 public class SysDeptController extends BaseController {
     @Resource
     private SysDeptService sysDeptService;
+    @Resource
+    private SysRoleDeptService sysRoleDeptService;
 
     /**
      * 增加 部门表
@@ -119,5 +122,18 @@ public class SysDeptController extends BaseController {
         List<SysDept> list = sysDeptService.getSysDeptTreeList();
         //PageInfo pageInfo = new PageInfo(list);
         return Result.success(list);
+    }
+
+    /**
+     * 角色数据权限：部门树 + 已勾选部门 ID
+     * 前端 roleDeptTreeselect 期望顶层字段 depts、checkedKeys
+     */
+    @GetMapping("/roleDeptTreeselect/{roleId}")
+    public Result roleDeptTreeselect(@PathVariable("roleId") Long roleId) {
+        List<SysDept> depts = sysDeptService.getSysDeptTreeList();
+        Result ajax = Result.success();
+        ajax.put("depts", depts);
+        ajax.put("checkedKeys", sysRoleDeptService.selectDeptIdsByRoleId(roleId));
+        return ajax;
     }
 }

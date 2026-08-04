@@ -1,5 +1,6 @@
 package com.geekplus.webapp.function.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.geekplus.common.annotation.Excel;
 import com.geekplus.common.domain.BaseEntity;
 import com.geekplus.common.util.ThumbnailUtil;
@@ -94,7 +95,15 @@ public class GpArticles extends BaseEntity
      */
     private String pathName;
 
+    /**
+     * 文章标签
+     */
     private List<GpArticleTags> tags;
+
+    /**
+     * 文章目录
+     */
+    private GpArticleCategory category;
 
     public void setId(Long id)
     {
@@ -253,6 +262,14 @@ public class GpArticles extends BaseEntity
 
     public void setTags(List<GpArticleTags> tags) {
         this.tags = tags;
+    }
+
+    public GpArticleCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(GpArticleCategory category) {
+        this.category = category;
     }
 
     @Override

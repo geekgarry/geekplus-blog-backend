@@ -70,6 +70,15 @@ public class GpUserComment extends BaseEntity
     //是否显示
     private Integer isDisplay;
 
+    /** 关联文章标题（文章留言列表联表，非落库字段） */
+    private String articleTitle;
+
+    /** 关联文章封面 */
+    private String indexPicture;
+
+    /** 非管理员本人过滤：匹配多种 user_id 写法 */
+    private List<String> ownUserIds;
+
     public void setId(Long id)
     {
         this.id = id;
@@ -198,6 +207,30 @@ public class GpUserComment extends BaseEntity
 
     public void setIsDisplay(Integer isDisplay) {
         this.isDisplay = isDisplay;
+    }
+
+    public String getArticleTitle() {
+        return articleTitle;
+    }
+
+    public void setArticleTitle(String articleTitle) {
+        this.articleTitle = articleTitle;
+    }
+
+    public String getIndexPicture() {
+        return indexPicture;
+    }
+
+    public void setIndexPicture(String indexPicture) {
+        this.indexPicture = indexPicture;
+    }
+
+    public List<String> getOwnUserIds() {
+        return ownUserIds;
+    }
+
+    public void setOwnUserIds(List<String> ownUserIds) {
+        this.ownUserIds = ownUserIds;
     }
 
     @Override

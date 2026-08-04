@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.geekplus.webapp.function.mapper.GpSiteDailyStatsMapper">
+
+    <resultMap id="GpSiteDailyStatsResult" type="com.geekplus.webapp.function.entity.GpSiteDailyStats">
+        <id property="statDate" column="stat_date"/>
+        <result property="pv" column="pv"/>
+        <result property="uv" column="uv"/>
+        <result property="newViews" column="new_views"/>
+        <result property="newLikes" column="new_likes"/>
+        <result property="newComments" column="new_comments"/>
+        <result property="newArticles" column="new_articles"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="upsert" parameterType="com.geekplus.webapp.function.entity.GpSiteDailyStats">
+        INSERT INTO gp_site_daily_stats
+        (stat_date, pv, uv, new_views, new_likes, new_comments, new_articles, created_at, updated_at)
+        VALUES
+        (#{statDate}, #{pv}, #{uv}, #{newViews}, #{newLikes}, #{newComments}, #{newArticles}, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            pv = VALUES(pv),
+            uv = VALUES(uv),
+            new_views = VALUES(new_views),
+            new_likes = VALUES(new_likes),
+            new_comments = VALUES(new_comments),
+            new_articles = VALUES(new_articles),
+            updated_at = NOW()
+    </insert>
+
+    <select id="selectByDate" resultMap="GpSiteDailyStatsResult">
+        SELECT * FROM gp_site_daily_stats WHERE stat_date = #{statDate}
+    </select>
+
+    <select id="selectBetween" resultMap="GpSiteDailyStatsResult">
+        SELECT * FROM gp_site_daily_stats
+        WHERE stat_date &gt;= #{begin} AND stat_date &lt;= #{end}
+        ORDER BY stat_date ASC
+    </select>
+
+    <select id="selectArticleTotals" resultType="java.util.HashMap">
+        SELECT
+            IFNULL(SUM(view_count), 0) AS totalViews,
+            IFNULL(SUM(like_count), 0) AS totalLikes,
+            COUNT(1) AS totalArticles
+        FROM gp_articles
+    </select>
+
+    <select id="selectCommentTotal" resultType="java.lang.Long">
+        SELECT
+            (SELECT COUNT(1) FROM gp_user_comment) +
+            (SELECT COUNT(1) FROM gp_article_comment)
+    </select>
+</mapper>

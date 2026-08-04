@@ -57,6 +57,8 @@ public class LoginUser implements Serializable {
     private String phoneNumber;
     private String avatar;
     private Integer gender;
+    /** 用户类型：0普通 1系统管理员 2网站管理员 3开发者 … */
+    private Integer userType;
 
     //用户所属部门
     private SysDeptVO sysDept;
@@ -84,6 +86,7 @@ public class LoginUser implements Serializable {
         this.phoneNumber = sysUser.getPhoneNumber();
         this.avatar = sysUser.getAvatar();
         this.gender = sysUser.getGender();
+        this.userType = sysUser.getUserType();
         setSysDept(build(sysUser.getSysDept()));
         setSysRoleList(build(sysUser.getSysRoleList()));
         this.sysMenuList = permissionsMenu;
@@ -104,11 +107,16 @@ public class LoginUser implements Serializable {
      * @Description //构建新的SysRole显示对象
      */
     public List<SysRoleVO> build(List<SysRole> sysRoleList) {
+        if (sysRoleList == null || sysRoleList.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
         return sysRoleList.stream().map(role -> {
             SysRoleVO sysRoleVO = new SysRoleVO();
             sysRoleVO.setRoleId(role.getRoleId());
             sysRoleVO.setRoleName(role.getRoleName());
             sysRoleVO.setRoleKey(role.getRoleKey());
+            // 登录会话需保留 dataScope，供列表等查询的数据权限切面使用
+            sysRoleVO.setDataScope(role.getDataScope());
             return sysRoleVO;
         }).collect(Collectors.toList());
     }
@@ -167,6 +175,14 @@ public class LoginUser implements Serializable {
 
     public void setGender(Integer gender) {
         this.gender = gender;
+    }
+
+    public Integer getUserType() {
+        return userType;
+    }
+
+    public void setUserType(Integer userType) {
+        this.userType = userType;
     }
 
     public SysDeptVO getSysDept() {

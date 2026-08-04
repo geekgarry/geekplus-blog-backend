@@ -99,6 +99,7 @@ public class ShiroConfig {
         map.put("/sys/user/login","anon");
         map.put("/sys/user/register","anon");
         map.put("/captchaBase64","anon");
+        map.put("/captchaImage","anon");
         map.put("/sys/user/getValidateCode","anon");
         map.put("/sys/user/logout","anon");
         map.put("/customer/login","anon");

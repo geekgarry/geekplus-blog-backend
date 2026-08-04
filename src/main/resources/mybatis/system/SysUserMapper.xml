@@ -78,6 +78,8 @@
         <result property="roleId" column="role_id" jdbcType="INTEGER" />
         <result property="roleName" column="role_name" jdbcType="VARCHAR" />
         <result column="role_key" jdbcType="VARCHAR" property="roleKey" />
+        <!-- 登录/详情需带上数据范围，供 DataScopeAspect 使用 -->
+        <result property="dataScope" column="data_scope" jdbcType="CHAR" />
     </resultMap>
 
     <resultMap id="menuResultMap" type="com.geekplus.webapp.system.entity.SysMenu" >
@@ -108,23 +110,31 @@
         select su.user_id,su.dept_id,su.username,su.nickname,su.user_type,su.email,su.phone_number,su.gender,su.avatar,
         su.password,su.status,su.del_flag,su.login_ip,su.login_time,su.create_by,su.create_time,su.update_by,su.update_time,su.remark,
         sd.dept_id,sd.dept_name,sd.parent_id,sd.leader,sd.phone,sd.email,
-        sr.role_id,sr.role_name,sr.role_key
+        sr.role_id,sr.role_name,sr.role_key,sr.data_scope
         from sys_user su
         left join sys_dept sd on su.dept_id=sd.dept_id
         left join sys_user_role sur on sur.user_id = su.user_id
         left join sys_role sr on sr.role_id = sur.role_id
     </sql>
 
-    <!--数据查询操作SQL(非联合查询)-->
+    <!--数据查询操作SQL(非联合查询)；deptIdList 优先于单 deptId；params.dataScope 由 DataScopeAspect 注入-->
     <select id="selectSysUserList" parameterType="SysUser" resultMap="BaseResultMap">
         <include refid="baseSelectVo"/>
         <where>
             <if test="userId !=null">
                 AND user_id = #{userId}
             </if>
-            <if test="deptId !=null">
-                AND dept_id = #{deptId}
-            </if>
+            <choose>
+                <when test="deptIdList != null and deptIdList.size() &gt; 0">
+                    AND dept_id IN
+                    <foreach collection="deptIdList" item="id" open="(" separator="," close=")">
+                        #{id}
+                    </foreach>
+                </when>
+                <when test="deptId !=null">
+                    AND dept_id = #{deptId}
+                </when>
+            </choose>
             <if test="username !=null and username != ''">
                 AND username = #{username}
             </if>
@@ -175,6 +185,10 @@
             </if>
             <if test="remark !=null">
                 AND remark = #{remark}
+            </if>
+            <!-- 数据权限过滤（空字符串时不拼接） -->
+            <if test="params != null and params.dataScope != null and params.dataScope != ''">
+                ${params.dataScope}
             </if>
         </where>
     </select>
@@ -247,9 +261,17 @@
             <if test="userId !=null">
                 AND su.user_id = #{userId}
             </if>
-            <if test="deptId !=null">
-                AND su.dept_id = #{deptId}
-            </if>
+            <choose>
+                <when test="deptIdList != null and deptIdList.size() &gt; 0">
+                    AND su.dept_id IN
+                    <foreach collection="deptIdList" item="id" open="(" separator="," close=")">
+                        #{id}
+                    </foreach>
+                </when>
+                <when test="deptId !=null">
+                    AND su.dept_id = #{deptId}
+                </when>
+            </choose>
             <if test="username !=null">
                 AND su.username = #{username}
             </if>
@@ -300,6 +322,9 @@
             </if>
             <if test="remark !=null">
                 AND su.remark = #{remark}
+            </if>
+            <if test="params != null and params.dataScope != null and params.dataScope != ''">
+                ${params.dataScope}
             </if>
         </where>
     </select>

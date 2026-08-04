@@ -25,6 +25,11 @@ public class SysRoleVO {
      */
     private String roleKey;
 
+    /**
+     * 数据范围（1全部 2自定 3本部门 4本部门及以下 5仅本人）
+     */
+    private String dataScope;
+
     public Long getRoleId() {
         return roleId;
     }
@@ -47,5 +52,13 @@ public class SysRoleVO {
 
     public void setRoleKey(String roleKey) {
         this.roleKey = roleKey;
+    }
+
+    public String getDataScope() {
+        return dataScope;
+    }
+
+    public void setDataScope(String dataScope) {
+        this.dataScope = dataScope;
     }
 }

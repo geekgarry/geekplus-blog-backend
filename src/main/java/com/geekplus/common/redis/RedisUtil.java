@@ -287,6 +287,53 @@ public class RedisUtil {
     }
 
     /**
+     * HyperLogLog 添加元素（UV 去重）
+     */
+    public long pfAdd(String key, String... values) {
+        try {
+            Long n = redisTemplate.opsForHyperLogLog().add(key, (Object[]) values);
+            return n == null ? 0L : n;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0L;
+        }
+    }
+
+    /**
+     * HyperLogLog 估算基数
+     */
+    public long pfCount(String key) {
+        try {
+            Long n = redisTemplate.opsForHyperLogLog().size(key);
+            return n == null ? 0L : n;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0L;
+        }
+    }
+
+    /** 按前缀扫描 key（量不大时用于近 N 日统计） */
+    @SuppressWarnings("unchecked")
+    public Set<String> keys(String pattern) {
+        try {
+            Set<Object> raw = redisTemplate.keys(pattern);
+            if (raw == null || raw.isEmpty()) {
+                return Collections.emptySet();
+            }
+            Set<String> out = new HashSet<>();
+            for (Object o : raw) {
+                if (o != null) {
+                    out.add(String.valueOf(o));
+                }
+            }
+            return out;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptySet();
+        }
+    }
+
+    /**
      * 递减
      * @param key 键
      * @param delta 要减少几(小于0)
@@ -832,9 +879,9 @@ public class RedisUtil {
      * @param pattern
      * @return
      */
-    public Set keys(String pattern){
-        return redisTemplate.keys(pattern);
-    }
+//    public Set keys(String pattern){
+//        return redisTemplate.keys(pattern);
+//    }
 
     /**
      * 使用Redis的消息队列

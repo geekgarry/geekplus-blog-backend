@@ -1,9 +1,12 @@
 package com.geekplus.webapp.system.service.impl;
 
+import com.geekplus.common.annotation.DataScope;
+import com.geekplus.common.core.text.Convert;
 import com.geekplus.framework.web.exception.BusinessException;
 import com.geekplus.common.util.encrypt.EncryptUtil;
 import com.geekplus.common.util.string.StringUtils;
-import com.geekplus.webapp.system.entity.SysMenu;
+import com.geekplus.webapp.system.entity.SysDept;
+import com.geekplus.webapp.system.mapper.SysDeptMapper;
 import com.geekplus.webapp.system.mapper.SysUserMapper;
 import com.geekplus.webapp.system.entity.SysUser;
 import com.geekplus.webapp.system.service.SysUserService;
@@ -12,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -25,6 +27,8 @@ import javax.annotation.Resource;
 public class SysUserServiceImpl implements SysUserService {
     @Resource
     private SysUserMapper sysUserMapper;
+    @Resource
+    private SysDeptMapper sysDeptMapper;
 
     /**
     * 增加
@@ -129,9 +133,63 @@ public class SysUserServiceImpl implements SysUserService {
 
     /**
     * 查询全部
+    * baseSelectVo 无表别名，故 DataScope 不传 deptAlias，过滤片段为 AND dept_id IN (...)
     */
+    @Override
+    @DataScope
     public List<SysUser> selectSysUserList(SysUser sysUser){
+        expandDeptIdFilter(sysUser);
         return sysUserMapper.selectSysUserList(sysUser);
+    }
+
+    /**
+     * 将 deptIds / includeChildren+deptId 展开为 deptIdList，并清空单 deptId，避免与 IN 条件 AND 冲突。
+     */
+    private void expandDeptIdFilter(SysUser sysUser)
+    {
+        if (sysUser == null)
+        {
+            return;
+        }
+        LinkedHashSet<Long> idSet = new LinkedHashSet<>();
+        // 优先使用前端传入的逗号分隔 deptIds（可能已含子部门）
+        if (StringUtils.isNotEmpty(sysUser.getDeptIds()))
+        {
+            Long[] ids = Convert.toLongArray(sysUser.getDeptIds());
+            if (ids != null)
+            {
+                for (Long id : ids)
+                {
+                    if (id != null)
+                    {
+                        idSet.add(id);
+                    }
+                }
+            }
+        }
+        // includeChildren=true 时按 ancestors 展开本部门及子孙（可与 deptIds 合并）
+        if (Boolean.TRUE.equals(sysUser.getIncludeChildren()) && sysUser.getDeptId() != null)
+        {
+            Long rootId = sysUser.getDeptId().longValue();
+            idSet.add(rootId);
+            List<SysDept> children = sysDeptMapper.selectChildrenDeptById(rootId);
+            if (children != null)
+            {
+                for (SysDept child : children)
+                {
+                    if (child.getDeptId() != null)
+                    {
+                        idSet.add(child.getDeptId());
+                    }
+                }
+            }
+        }
+        if (!idSet.isEmpty())
+        {
+            sysUser.setDeptIdList(new ArrayList<>(idSet));
+            // 避免 Mapper 同时拼 dept_id = ? AND dept_id IN (...)
+            sysUser.setDeptId(null);
+        }
     }
 
     @Override
@@ -143,7 +201,10 @@ public class SysUserServiceImpl implements SysUserService {
     /**
     * 查询全部,用于联合查询，在此基础做自己的定制改动
     */
+    @Override
+    @DataScope(deptAlias = "su", userAlias = "su")
     public List<SysUser> selectUnionSysUserList(SysUser sysUser){
+        expandDeptIdFilter(sysUser);
         return sysUserMapper.selectUnionSysUserList(sysUser);
     }
 

@@ -9,15 +9,21 @@ import com.geekplus.common.enums.BusinessType;
 import com.geekplus.common.enums.OperatorType;
 import com.geekplus.common.page.PageDataInfo;
 import com.geekplus.common.util.poi.ExcelUtil;
+import com.geekplus.common.util.string.StringUtils;
+import com.geekplus.framework.aspect.DataScopeAspect;
 import com.geekplus.webapp.system.entity.SysMenu;
 import com.geekplus.webapp.system.entity.SysRole;
+import com.geekplus.webapp.system.entity.SysRoleDept;
 import com.geekplus.webapp.system.service.SysMenuService;
+import com.geekplus.webapp.system.service.SysRoleDeptService;
 import com.geekplus.webapp.system.service.SysRoleService;
 import com.github.pagehelper.PageInfo;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -31,6 +37,8 @@ public class SysRoleController extends BaseController {
     private SysRoleService sysRoleService;
     @Resource
     private SysMenuService sysMenuService;
+    @Resource
+    private SysRoleDeptService sysRoleDeptService;
 
     /**
      * 增加 系统角色表
@@ -125,5 +133,49 @@ public class SysRoleController extends BaseController {
         List<SysRole> list = sysRoleService.selectSysRoleList(sysRole);
         ExcelUtil<SysRole> util = new ExcelUtil<SysRole>(SysRole.class);
         return util.exportExcel(list, "sysRole");
+    }
+
+    /**
+     * 保存角色数据权限范围：更新 data_scope；自定权限时全量替换 sys_role_dept
+     * body: { roleId, dataScope, deptIds: [] }
+     */
+    @RequiresPermissions("system:role:update")
+    @Log(title = "角色数据权限", businessType = BusinessType.UPDATE, operatorType = OperatorType.MANAGE, isSaveRequestData = false)
+    @PostMapping("/dataScope")
+    @Transactional(rollbackFor = Exception.class)
+    public Result dataScope(@RequestBody SysRole sysRole)
+    {
+        if (sysRole.getRoleId() == null)
+        {
+            return Result.error("角色ID不能为空");
+        }
+        // 统一成字符串，兼容前端传数字
+        String dataScope = sysRole.getDataScope() == null ? null : String.valueOf(sysRole.getDataScope()).trim();
+        sysRole.setDataScope(dataScope);
+
+        SysRole update = new SysRole();
+        update.setRoleId(sysRole.getRoleId());
+        update.setDataScope(dataScope);
+        int rows = sysRoleService.updateSysRole(update);
+
+        // 始终先清关联；仅自定数据权限时回写勾选部门
+        sysRoleDeptService.deleteByRoleId(sysRole.getRoleId());
+        if (DataScopeAspect.DATA_SCOPE_CUSTOM.equals(dataScope) && StringUtils.isNotEmpty(sysRole.getDeptIds()))
+        {
+            List<SysRoleDept> list = new ArrayList<>();
+            for (Long deptId : sysRole.getDeptIds())
+            {
+                if (deptId == null)
+                {
+                    continue;
+                }
+                SysRoleDept rd = new SysRoleDept();
+                rd.setRoleId(sysRole.getRoleId());
+                rd.setDeptId(deptId);
+                list.add(rd);
+            }
+            sysRoleDeptService.batchInsert(list);
+        }
+        return toResult(rows);
     }
 }

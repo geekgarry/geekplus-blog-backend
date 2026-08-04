@@ -66,9 +66,10 @@ public class WebMvcResourceConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry)
     {
-        //registry.addInterceptor(repeatSubmitInterceptor).addPathPatterns("/**");
-        registry.addInterceptor(visitInterceptor).addPathPatterns("/**");
-        //registry.addInterceptor(new CookieToHeaderInterceptor()).addPathPatterns("/profile/**");
+        // 仅挂前台 geekplusapp，避免登录/验证码/后台接口每次创建 Session + Redis
+        registry.addInterceptor(visitInterceptor)
+                .addPathPatterns("/geekplusapp/**")
+                .excludePathPatterns("/geekplusapp/visitInfo");
     }
 
     @Override
