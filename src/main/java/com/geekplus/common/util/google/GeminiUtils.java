@@ -5,10 +5,10 @@ import com.alibaba.fastjson.JSONObject;
 import com.geekplus.common.domain.ChatPrompt;
 import com.geekplus.common.util.base64.Base64Util;
 import com.geekplus.common.util.file.FileUtils;
-import com.geekplus.common.util.http.HttpUtils;
 import com.geekplus.common.util.json.JsonEscapeUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.http.entity.ContentType;
 import org.springframework.core.io.InputStreamResource;
@@ -16,12 +16,12 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockMultipartFile;
+//import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import java.io.*;
 import java.net.HttpURLConnection;
@@ -189,9 +189,22 @@ public class GeminiUtils {
 //                objectOutputStream.flush();
 //                byte[] byteStream = byteArrayOutputStream.toByteArray();
                 // 数组转输入流
-                InputStream inputStream = new ByteArrayInputStream((byte[]) chatPrompt.getMediaData());
+                //  InputStream inputStream = new ByteArrayInputStream((byte[]) chatPrompt.getMediaData());
                 // 输入流转MultipartFile对象
-                MultipartFile multipartFile = new MockMultipartFile(ContentType.APPLICATION_OCTET_STREAM.toString(), inputStream);
+                // MultipartFile multipartFile = new MockMultipartFile(ContentType.APPLICATION_OCTET_STREAM.toString(), inputStream);
+                // 假设已有 byte[] data 和 fileName
+                byte[] data = (byte[]) chatPrompt.getMediaData();
+                String fileName = "upload.tmp";
+                // 创建临时文件
+                File tempFile = File.createTempFile("upload", ".tmp");
+                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    fos.write(data);
+                }
+                // 构建 DiskFileItem
+                DiskFileItem fileItem = new DiskFileItem("file", "application/octet-stream", false, fileName, (int) tempFile.length(), tempFile.getParentFile());
+                // 将数据写入 fileItem 的流中（此处简化，实际需复制流）
+                // 转换为 MultipartFile
+                MultipartFile multipartFile = new CommonsMultipartFile(fileItem);
                 // 把MultipartFile这个对象转成输入流资源(InputStreamResource)
                 InputStreamResource isr = new InputStreamResource(multipartFile.getInputStream(), chatPrompt.getMediaFileName());
                 requestJson.append("\"contents\":[\n" +

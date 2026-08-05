@@ -1,5 +1,6 @@
 package com.geekplus.framework.jwtshiro;
 
+import com.geekplus.framework.filter.ResourceAccessFilter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.mgt.DefaultSessionStorageEvaluator;
 import org.apache.shiro.mgt.DefaultSubjectDAO;
@@ -90,6 +91,8 @@ public class ShiroConfig {
         shiroFilterFactoryBean.getFilters().put("jwt",jwtFilter());
         //shiroFilterFactoryBean.getFilters().put("customerJwt",customerJwtFilter());
         shiroFilterFactoryBean.getFilters().put("invalidRequest", invalidRequestFilter());
+        // 1. 注册自定义 filter 到 Shiro 的 filter pool
+        shiroFilterFactoryBean.getFilters().put("signedAnon", resourceFilter());
         Map<String, String> map = new LinkedHashMap<>();
         //静态资源的过滤
         //map.put("/**/*.html","anon");
@@ -112,7 +115,7 @@ public class ShiroConfig {
         map.put("/chatAIWS/**","anon");
         map.put("/chatAIApp/**","anon");
         map.put("/chatAITopic/**","anon");
-        map.put("/profile/**","invalidRequest,anon");
+        map.put("/profile/**","invalidRequest,signedAnon");
         map.put("/common/getQRCode**","anon");
         map.put("/common/download**","anon");
         map.put("/common/download/resource**","anon");
@@ -167,6 +170,11 @@ public class ShiroConfig {
     //客户端用户jwt过滤器
     public UserJwtFilter customerJwtFilter(){
         return new UserJwtFilter();
+    }
+
+    @Bean
+    public ResourceAccessFilter resourceFilter() {
+        return new ResourceAccessFilter();
     }
 
     //非法字符请求过滤，非法字符的请求Url

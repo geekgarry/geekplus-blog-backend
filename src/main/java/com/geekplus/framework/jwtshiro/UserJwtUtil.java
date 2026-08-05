@@ -3,8 +3,8 @@ package com.geekplus.framework.jwtshiro;
 import com.plusplus.algorithm.Algorithm;
 import com.geekplus.common.constant.Constant;
 import com.plusplus.jwt.JwtPlus;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.*;
+//import io.jsonwebtoken.Jwts;
+//import io.jsonwebtoken.security.*;
 
 import java.security.SecureRandom;
 import java.util.*;
@@ -61,26 +61,26 @@ public class UserJwtUtil {
      * @param username 数据声明
      * @return 令牌
      */
-    public static String signToken(String username, String tokenId) {
-        // 调整密钥大小
-        byte[] keyBytes = new byte[32];
-        new SecureRandom().nextBytes(keyBytes);
-
-        Map<String, Object> header = new HashMap<>();
-        header.put("typ","JWT");
-        header.put("alg","HS256");
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("account", username); // 使用缩写
-        payload.put("tokenId", tokenId);
-        return Jwts.builder()
-                .header().add(header).and()
-                .claims(payload)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + EXPIRE_TIME))
-                .signWith(Keys.hmacShaKeyFor(keyBytes))
-                .compact();
-    }
+//    public static String signToken(String username, String tokenId) {
+//        // 调整密钥大小
+//        byte[] keyBytes = new byte[32];
+//        new SecureRandom().nextBytes(keyBytes);
+//
+//        Map<String, Object> header = new HashMap<>();
+//        header.put("typ","JWT");
+//        header.put("alg","HS256");
+//
+//        Map<String, Object> payload = new HashMap<>();
+//        payload.put("account", username); // 使用缩写
+//        payload.put("tokenId", tokenId);
+//        return Jwts.builder()
+//                .header().add(header).and()
+//                .claims(payload)
+//                .issuedAt(new Date())
+//                .expiration(new Date(System.currentTimeMillis() + EXPIRE_TIME))
+//                .signWith(Keys.hmacShaKeyFor(keyBytes))
+//                .compact();
+//    }
 
     /**
      * @Author geekplus

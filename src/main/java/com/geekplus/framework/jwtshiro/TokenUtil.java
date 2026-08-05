@@ -1,7 +1,7 @@
 package com.geekplus.framework.jwtshiro;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
+//import com.auth0.jwt.JWT;
+//import com.auth0.jwt.algorithms.Algorithm;
 import com.plusplus.jet.Jet;
 import com.plusplus.jwt.Jwt;
 
@@ -180,18 +180,18 @@ public class TokenUtil {
                 .algorithm(algorithmPlus)
                 .sign();
         System.out.println(tk111);
-        Algorithm algorithm = Algorithm.HMAC256("sjfjkbjfksbjfkbsjbfjks");
-        //设置头部信息
-        Map<String,Object> header = new HashMap<>();
-        header.put("typ","JWT");
-        header.put("alg","HS256");
-        String token11 = JWT.create().withHeader(header)
-                    .withClaim("userName","dsjjdsjk")
-                    .withClaim("tokenId","snfjasnfjnasjkbfajksb32423532b52")
-                    .withIssuedAt(new Date()) //创建的时间
-                    .withExpiresAt(new Date(System.currentTimeMillis()+50000)) //过期时间
-                    .sign(algorithm);
-        System.out.println(token11);
+//        Algorithm algorithm = Algorithm.HMAC256("sjfjkbjfksbjfkbsjbfjks");
+//        //设置头部信息
+//        Map<String,Object> header = new HashMap<>();
+//        header.put("typ","JWT");
+//        header.put("alg","HS256");
+//        String token11 = JWT.create().withHeader(header)
+//                    .withClaim("userName","dsjjdsjk")
+//                    .withClaim("tokenId","snfjasnfjnasjkbfajksb32423532b52")
+//                    .withIssuedAt(new Date()) //创建的时间
+//                    .withExpiresAt(new Date(System.currentTimeMillis()+50000)) //过期时间
+//                    .sign(algorithm);
+//        System.out.println(token11);
 
         // 验证 Token
         boolean isValid = Jwt.require().algorithm(algorithmPlus).verifyValidToken(token);
