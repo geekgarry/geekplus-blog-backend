@@ -63,18 +63,28 @@ CREATE TABLE `gen_table_column` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_config`;
 CREATE TABLE `sys_config` (
-  `config_id` int(11) NOT NULL AUTO_INCREMENT COMMENT '参数主键',
-  `config_name` varchar(100) CHARACTER SET utf8 DEFAULT '' COMMENT '参数名称',
-  `config_key` varchar(100) CHARACTER SET utf8 DEFAULT '' COMMENT '参数键名',
-  `config_value` varchar(500) CHARACTER SET utf8 DEFAULT '' COMMENT '参数键值',
-  `config_type` char(1) CHARACTER SET utf8 DEFAULT 'N' COMMENT '系统内置（Y是 N否）',
-  `create_by` varchar(64) CHARACTER SET utf8 DEFAULT '' COMMENT '创建者',
+  `config_id` int NOT NULL AUTO_INCREMENT COMMENT '参数主键',
+  `config_name` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT '' COMMENT '参数名称',
+  `config_key` varchar(100) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT '' COMMENT '参数键名',
+  `config_value` varchar(500) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT '' COMMENT '参数键值',
+  `value_type` varchar(20) NOT NULL DEFAULT 'string' COMMENT '参数值类型：boolean/number/string/text/json',
+  `config_type` char(1) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT 'N' COMMENT '系统内置（Y是 N否）',
+  `create_by` varchar(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT '' COMMENT '创建者',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_by` varchar(64) CHARACTER SET utf8 DEFAULT '' COMMENT '更新者',
+  `update_by` varchar(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT '' COMMENT '更新者',
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) CHARACTER SET utf8 DEFAULT NULL COMMENT '备注',
+  `remark` varchar(500) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`config_id`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统配置参数表';
+
+-- ----------------------------
+-- Records of sys_config
+-- ----------------------------
+BEGIN;
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `value_type`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, '账号自助-验证码开关', 'sys.account.captchaOnOff', 'false', 'boolean', 'Y', 'admin', NULL, 'admin', '2026-07-29 11:59:42', '是否开启验证码功能（true开启，false关闭）');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `value_type`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, '页面点击文字效果', 'site.click.text', '时间一天比一天少，我们一天比一天老，人生路上请记得，放过他人，善待自己', 'string', 'Y', 'admin', NULL, '', NULL, '冒泡文字');
+INSERT INTO `sys_config` (`config_id`, `config_name`, `config_key`, `config_value`, `value_type`, `config_type`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (3, '账号单点登录', 'sys.account.ssoEnabled', 'true', 'boolean', 'Y', 'admin', '2026-08-04 15:32:24', '', NULL, '开启后同一账号仅允许 PC 与移动端各保持一个登录；关闭则不限制');
+COMMIT;
 
 -- ----------------------------
 -- Table structure for sys_dept
