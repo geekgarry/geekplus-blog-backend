@@ -440,7 +440,7 @@
                     <if test="createBy != null  and createBy != ''">create_by = #{createBy},</if>
                     <if test="createTime != null ">create_time = #{createTime},</if>
                     <if test="updateBy != null  and updateBy != ''">update_by = #{updateBy},</if>
-                    <if test="remark != null  and remark != ''">remark = #{remark},</if>
+                    <if test="remark != null">remark = #{remark},</if>
                     update_time = sysdate()
         </trim>
          where user_id = #{userId}
@@ -465,7 +465,7 @@
             <if test="createBy != null  and createBy != ''">create_by = #{createBy},</if>
             <if test="createTime != null ">create_time = #{createTime},</if>
             <if test="updateBy != null  and updateBy != ''">update_by = #{updateBy},</if>
-            <if test="remark != null  and remark != ''">remark = #{remark},</if>
+            <if test="remark != null">remark = #{remark},</if>
             update_time = sysdate()
         </trim>
         where username = #{username}

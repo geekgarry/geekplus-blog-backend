@@ -79,9 +79,14 @@ public interface SysConfigService {
     public SysConfig selectSysConfigById(Long configId);
 
     /**
-     * 根据key查询单条数据
+     * 按键取参数原始字符串
      */
     public String selectSysConfigByKey(String configKey);
+
+    /**
+     * 按键取类型化后的值（boolean→Boolean，number→Long/Double，其余 String）
+     */
+    public Object selectTypedConfigValue(String configKey);
 
     /**
      * 获取验证码开关
@@ -89,6 +94,11 @@ public interface SysConfigService {
      * @return true开启，false关闭
      */
     public boolean selectCaptchaOnOff();
+
+    /**
+     * 单点登录开关（PC/移动端各限一会话）
+     */
+    public boolean selectSsoOnOff();
 
     /**
      * 校验参数键名是否唯一

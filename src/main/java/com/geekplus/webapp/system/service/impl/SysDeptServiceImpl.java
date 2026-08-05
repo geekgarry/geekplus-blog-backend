@@ -201,7 +201,6 @@ public class SysDeptServiceImpl implements SysDeptService {
         list.stream().forEach(item ->{
             //SysMenu menu = lt.next();
             if (item.getParentId() == 0) {
-                log.info("==========>数据"+entityList);
                 item.setChildren(getChild(list, item.getDeptId()));
                 entityList.add(item);
             }
@@ -214,10 +213,8 @@ public class SysDeptServiceImpl implements SysDeptService {
         for (Iterator<SysDept> iterator = list.iterator(); iterator.hasNext();){
             SysDept item = iterator.next();
             if (item.getParentId().equals(id)){
-                log.info("==========>数据"+item);
                 item.setChildren(getChild(list, item.getDeptId()));
                 childList.add(item);
-                log.info("==========>数据"+childList);
             }
         }
         return childList;

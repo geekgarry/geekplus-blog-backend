@@ -10,6 +10,7 @@
             <result property="configName" column="config_name" jdbcType="VARCHAR" />
             <result property="configKey" column="config_key" jdbcType="VARCHAR" />
             <result property="configValue" column="config_value" jdbcType="VARCHAR" />
+            <result property="valueType" column="value_type" jdbcType="VARCHAR" />
             <result property="configType" column="config_type" jdbcType="CHAR" />
             <result property="createBy" column="create_by" jdbcType="VARCHAR" />
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP" />
@@ -22,14 +23,14 @@
     <!--基础查询语句-->
     <sql id="baseSelectVo">
         select
-        config_id,config_name,config_key,config_value,config_type,create_by,create_time,update_by,update_time,remark
+        config_id,config_name,config_key,config_value,value_type,config_type,create_by,create_time,update_by,update_time,remark
          from sys_config
     </sql>
 
     <!--基础查询语句2,用作联合查询使用-->
     <sql id="selectSysConfigVo">
         select
-            sc.config_id,sc.config_name,sc.config_key,sc.config_value,sc.config_type,sc.create_by,sc.create_time,sc.update_by,sc.update_time,sc.remark
+            sc.config_id,sc.config_name,sc.config_key,sc.config_value,sc.value_type,sc.config_type,sc.create_by,sc.create_time,sc.update_by,sc.update_time,sc.remark
          from sys_config sc
     </sql>
 
@@ -48,6 +49,9 @@
                     </if>
                     <if test="configValue !=null">
                         AND config_value = #{configValue}
+                    </if>
+                    <if test="valueType !=null">
+                        AND value_type = #{valueType}
                     </if>
                     <if test="configType !=null">
                         AND config_type = #{configType}
@@ -85,6 +89,9 @@
                     </if>
                     <if test="configValue !=null">
                         AND sc.config_value = #{configValue}
+                    </if>
+                    <if test="valueType !=null">
+                        AND sc.value_type = #{valueType}
                     </if>
                     <if test="configType !=null">
                         AND sc.config_type = #{configType}
@@ -129,6 +136,9 @@
             <if test="configValue !=null">
                 AND sc.config_value = #{configValue}
             </if>
+            <if test="valueType != null  and valueType != ''">
+                AND sc.value_type = #{valueType}
+            </if>
             <if test="configType !=null">
                 AND sc.config_type = #{configType}
             </if>
@@ -157,6 +167,7 @@
                         <if test="configName != null  and configName != ''">config_name,</if>
                         <if test="configKey != null  and configKey != ''">config_key,</if>
                         <if test="configValue != null  and configValue != ''">config_value,</if>
+                        <if test="valueType != null  and valueType != ''">value_type,</if>
                         <if test="configType != null  and configType != ''">config_type,</if>
                         <if test="createBy != null  and createBy != ''">create_by,</if>
                         <if test="createTime != null ">create_time,</if>
@@ -168,6 +179,7 @@
                         <if test="configName != null  and configName != ''">#{configName},</if>
                         <if test="configKey != null  and configKey != ''">#{configKey},</if>
                         <if test="configValue != null  and configValue != ''">#{configValue},</if>
+                        <if test="valueType != null  and valueType != ''">#{valueType},</if>
                         <if test="configType != null  and configType != ''">#{configType},</if>
                         <if test="createBy != null  and createBy != ''">#{createBy},</if>
                         <if test="createTime != null ">#{createTime},</if>
@@ -181,12 +193,12 @@
     <insert id="batchInsertSysConfigList" parameterType="java.util.List">
         insert into sys_config
         (
-         config_name,config_key,config_value,config_type,create_by,create_time,update_by,update_time,remark
+         config_name,config_key,config_value,value_type,config_type,create_by,create_time,update_by,update_time,remark
         )
          values
         <foreach collection="list" item="item" index="index" separator=",">
         (
-         #{item.configName},#{item.configKey},#{item.configValue},#{item.configType},#{item.createBy},#{item.createTime},#{item.updateBy},#{item.updateTime},#{item.remark}
+         #{item.configName},#{item.configKey},#{item.configValue},#{item.valueType},#{item.configType},#{item.createBy},#{item.createTime},#{item.updateBy},#{item.updateTime},#{item.remark}
         )
         </foreach>
     </insert>
@@ -224,6 +236,7 @@
                     <if test="configName != null  and configName != ''">config_name = #{configName},</if>
                     <if test="configKey != null  and configKey != ''">config_key = #{configKey},</if>
                     <if test="configValue != null  and configValue != ''">config_value = #{configValue},</if>
+                    <if test="valueType != null  and valueType != ''">value_type = #{valueType},</if>
                     <if test="configType != null  and configType != ''">config_type = #{configType},</if>
                     <if test="createBy != null  and createBy != ''">create_by = #{createBy},</if>
                     <if test="createTime != null ">create_time = #{createTime},</if>

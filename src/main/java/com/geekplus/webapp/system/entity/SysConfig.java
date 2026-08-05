@@ -36,6 +36,13 @@ public class SysConfig extends BaseEntity
 	@Excel(name = "参数键值")
 	private String configValue;
 
+	/**
+	 * 参数值类型：boolean / number / string / text / json
+	 * （注意：configType 仍表示「是否系统内置 Y/N」）
+	 */
+	@Excel(name = "值类型")
+	private String valueType;
+
 	/** 系统内置（Y是 N否） */
 	@Excel(name = "系统内置", readConverterExp = "Y=是,N=否")
 	private String configType;
@@ -86,6 +93,16 @@ public class SysConfig extends BaseEntity
 		this.configValue = configValue;
 	}
 
+	public String getValueType()
+	{
+		return valueType;
+	}
+
+	public void setValueType(String valueType)
+	{
+		this.valueType = valueType;
+	}
+
 	public String getConfigType()
 	{
 		return configType;
@@ -103,6 +120,7 @@ public class SysConfig extends BaseEntity
 				.append("configName", getConfigName())
 				.append("configKey", getConfigKey())
 				.append("configValue", getConfigValue())
+				.append("valueType", getValueType())
 				.append("configType", getConfigType())
 				.append("createBy", getCreateBy())
 				.append("createTime", getCreateTime())

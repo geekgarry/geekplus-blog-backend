@@ -92,8 +92,6 @@ public class SysUserLoginController extends BaseController {
         {
             validateCaptcha(loginBody, loginBody.getValidateCode(), loginBody.getValidateKey());
         }
-        //UsernamePasswordToken upToken=new UsernamePasswordToken(loginUser.getUserName(),loginUser.getPassword());
-        sysUserService.updateSysUserByUsername(loginBody.getUsername(), IPUtils.getIpAddr(ServletUtil.getRequest()));
         SysUser sysUserInfo =sysUserService.getSysUserInfoBy(loginBody.getUsername());
         if(sysUserInfo==null) {
             LogUtil.recordLoginInfo(loginBody, Constant.LOGIN_FAIL,ApiExceptionEnum.LOGIN_USERNAME_ERROR.getMsg());
@@ -106,14 +104,12 @@ public class SysUserLoginController extends BaseController {
             LogUtil.recordLoginInfo(loginBody, Constant.LOGIN_FAIL,ApiExceptionEnum.LOGIN_PASSWORD_ERROR.getMsg());
             throw new BusinessException(ApiExceptionEnum.LOGIN_PASSWORD_ERROR);
         }
+        // 认证通过后再写登录 IP，避免失败登录也打库
+        sysUserService.updateSysUserByUsername(loginBody.getUsername(), IPUtils.getIpAddr(ServletUtil.getRequest()));
 
         LoginUser loginUser = new LoginUser(sysUserInfo, sysUserService.getSysUserMenuPerms(sysUserInfo.getUserId()));
 
         LogUtil.recordLoginInfo(loginBody, Constant.LOGIN_SUCCESS,"登录成功");
-//        Cookie cookie = new Cookie(Constant.USER_HEADER_TOKEN, token);
-//        cookie.setPath("/");
-//        cookie.setHttpOnly(true);
-//        response.addCookie(cookie);
         Map<String, Object> res = new HashMap<>();
         res.put("token", tokenService.createToken(loginUser));
         return Result.success(res);

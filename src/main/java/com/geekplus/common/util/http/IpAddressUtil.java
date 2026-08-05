@@ -53,8 +53,8 @@ public class IpAddressUtil {
                 //2、设置connection的属性
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(20000);
-                connection.setReadTimeout(20000);
+                connection.setConnectTimeout(1500);
+                connection.setReadTimeout(1500);
                 connection.setRequestProperty("content-type", "application/json; charset=utf-8");
 
                 //3.连接

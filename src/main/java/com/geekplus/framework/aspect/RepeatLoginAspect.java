@@ -54,12 +54,8 @@ public class RepeatLoginAspect {
 
         //返回目标方法的签名
         Signature signature = joinPoint.getSignature();
-        log.info("请求方法 : " + signature.getDeclaringTypeName() + "." + signature.getName());
-        //log.info("代理的是哪一个方法："+signature.getName());
         Object[] obj = joinPoint.getArgs();
-        log.info("获取目标方法的参数信息："+ Arrays.asList(obj));
         LoginBody loginBody=(LoginBody)Arrays.asList(obj).get(0);
-        //log.info("获取目标方法的参数信息："+ loginUser.getUserName());
         // 获取token当做key
         String userName = loginBody.getUsername();//request.getHeader("token");
         if (StringUtils.isBlank(userName)) {
@@ -74,7 +70,9 @@ public class RepeatLoginAspect {
         String redisKey = "login_key:"
                 .concat(url).concat(":")
                 .concat(userName);
-        log.info("==========redisKey ====== {}",redisKey);
+        if (log.isDebugEnabled()) {
+            log.debug("防重复登录 method={}.{} user={}", signature.getDeclaringTypeName(), signature.getName(), userName);
+        }
 
         if (!redisUtil.hasKey(redisKey)) {
             redisUtil.set(redisKey, userName, annotation.seconds());

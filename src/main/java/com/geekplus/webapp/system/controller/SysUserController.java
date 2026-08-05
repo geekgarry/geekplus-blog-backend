@@ -142,25 +142,38 @@ public class SysUserController extends BaseController {
     }
 
     /**
-     * 更新 系统用户表
+     * 更新当前登录用户个人资料（支持用户名、备注）；成功后强制下线需重新登录
      */
-    @RequiresPermissions("system:user:update")
-    @Log(title = "更新用户信息",businessType = BusinessType.UPDATE,operatorType = OperatorType.MANAGE)
-    @GetMapping("/updateUserProfile")
+    @Log(title = "更新个人资料", businessType = BusinessType.UPDATE, operatorType = OperatorType.MANAGE)
+    @PutMapping("/updateUserProfile")
     public Result updateUserProfile(@RequestBody SysUser sysUser) {
         LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
-        if(sysUserService.updateSysUser(sysUser) > 0) {
-            loginUser.setNickname(sysUser.getNickname());
-            loginUser.setPhoneNumber(sysUser.getPhoneNumber());
-            loginUser.setEmail(sysUser.getEmail());
-            loginUser.setGender(sysUser.getGender());
-            loginUser.setUsername(sysUser.getUsername());
-            if (!sysUser.getDeptId().equals(loginUser.getSysDept().getDeptId())) {
-                SysDept sysDept = sysUserService.getSysUserInfoBy(sysUser.getUsername()).getSysDept();
-                loginUser.setSysDept(loginUser.build(sysDept));
+        if (loginUser == null) {
+            return Result.error("未登录");
+        }
+        String oldUsername = loginUser.getUsername();
+        String newUsername = sysUser.getUsername();
+        if (StringUtils.isEmpty(newUsername)) {
+            newUsername = oldUsername;
+            sysUser.setUsername(oldUsername);
+        }
+        // 只能改自己
+        sysUser.setUserId(loginUser.getUserId());
+        // 用户名变更时校验唯一
+        if (!oldUsername.equals(newUsername)) {
+            if (sysUserService.selectCountByUsername(newUsername) > 0) {
+                return Result.error("用户名已存在");
             }
-            sysUserTokenService.setLoginUser(loginUser);
-            return Result.success();
+        }
+        if (sysUserService.updateSysUser(sysUser) > 0) {
+            // 个人资料变更后强制重新登录（用户名变更时旧 Redis key 必须清理）
+            sysUserTokenService.invalidateUserSessions(oldUsername);
+            if (!oldUsername.equals(newUsername)) {
+                sysUserTokenService.invalidateUserSessions(newUsername);
+            }
+            Result result = Result.success("修改成功，请重新登录");
+            result.put("forceRelogin", true);
+            return result;
         }
         return Result.error();
     }

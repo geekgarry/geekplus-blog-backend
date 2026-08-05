@@ -69,7 +69,10 @@ public class JwtRealm extends AuthorizingRealm {
         Set<String> permSet = loginUser.getSysMenuList();
         simpleAuthorizationInfo.addRoles(roleSet);
         simpleAuthorizationInfo.addStringPermissions(permSet);
-        log.info("授权当前Subject用户为：{} 所属角色：{} ||| {}", loginUser.getUsername(), roleSet, permSet);
+        // 权限集合较大，勿在 INFO 全量打印（生产日志膨胀、拖慢请求）
+        if (log.isDebugEnabled()) {
+            log.debug("授权用户={} roles={} perms={}", loginUser.getUsername(), roleSet.size(), permSet == null ? 0 : permSet.size());
+        }
 //        userRolePermList.stream().forEach(rolePermMap -> {
 //        });
 //        numbersList.stream().distinct().collect(Collectors.toList());
@@ -84,31 +87,18 @@ public class JwtRealm extends AuthorizingRealm {
 
     @Override
     protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
-        log.info("####################### 执行Shiro权限认证 #####################");
         String token = (String) authenticationToken.getCredentials();// 重写了该类，实际上返回的是token
         if (token == null) {
-            log.info("————————身份认证失败——————————");
+            log.warn("身份认证失败：token 为空");
             throw new AuthenticationException("认证缺失！非法无效!");
         }
-        // 根据token获得登录用户的email
-        //String username = JwtTokenUtil.verifyResult(token).getClaim("userName").asString();
-        //log.info("从token中获取用户名为{}",username);
-        // 第一种方式
-        // 获取用户输入的账号和密码(一般只需要获取账号就可以)
-        //String username = (String) authenticationToken.getPrincipal();
-        //String password = new String((char[]) authenticationToken.getCredentials());
-        //System.out.println("用户："+username);
-        // 第二种方式（推荐第一种）
-        // UsernamePasswordToken usernamePasswordToken = (UsernamePasswordToken) authenticationToken;
-        // String username = usernamePasswordToken.getUsername();
-        // String password = new String(usernamePasswordToken.getPassword());
-        System.out.println("*************###################***************");
         // 通过username从redis或数据库中查找 User对象，如果找到则进行验证
         LoginUser loginUser=tokenService.checkUserTokenGetLoginUser(token);
-        // 进行验证
-        SimpleAuthenticationInfo authenticationInfo = new SimpleAuthenticationInfo(loginUser, token, getName());
-        log.info("认证用户SysUser:"+authenticationInfo.getPrincipals().getPrimaryPrincipal()+" token:"+authenticationInfo.getCredentials());
-        return authenticationInfo;
+        // 进行验证（勿打印完整 token）
+        if (log.isDebugEnabled()) {
+            log.debug("认证通过用户={}", loginUser.getUsername());
+        }
+        return new SimpleAuthenticationInfo(loginUser, token, getName());
     }
 
     /**

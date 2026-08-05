@@ -65,17 +65,10 @@ public class JwtFilter extends BasicHttpAuthenticationFilter {
      */
     @Override
     protected boolean isAccessAllowed(ServletRequest request, ServletResponse response, Object mappedValue) {
-        logger.info("开始jwt 校验");
-        //判断是不是第二次进入，是则直接返回
-//        Boolean afterFiltered = (boolean)(request.getAttribute("jwtFilter.FILTERED"));
-//        if( BooleanUtils.isTrue(afterFiltered)) {
-//            return true;
-//        }
         //如果不是登录请求
         if (isLoginAttempt(request, response)) {
             try {
                 executeLogin(request, response);
-                System.out.println("jwt 校验通过");
                 return true;
             } catch (Exception e) {
                 /*

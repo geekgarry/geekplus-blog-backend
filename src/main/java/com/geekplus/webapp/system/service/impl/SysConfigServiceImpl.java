@@ -190,6 +190,71 @@ public class SysConfigServiceImpl implements SysConfigService {
     }
 
     /**
+     * 按键取类型化后的值
+     */
+    @Override
+    public Object selectTypedConfigValue(String configKey)
+    {
+        SysConfig query = new SysConfig();
+        query.setConfigKey(configKey);
+        SysConfig config = sysConfigMapper.selectConfig(query);
+        String raw = selectSysConfigByKey(configKey);
+        String type = config != null && StringUtils.isNotEmpty(config.getValueType())
+            ? config.getValueType() : "string";
+        return convertByValueType(raw, type);
+    }
+
+    /**
+     * 按 value_type 转换
+     */
+    public Object convertByValueType(String raw, String valueType)
+    {
+        if (raw == null)
+        {
+            return null;
+        }
+        String type = StringUtils.isEmpty(valueType) ? "string" : valueType.trim().toLowerCase();
+        switch (type)
+        {
+            case "boolean":
+                return parseYnFlag(raw, false);
+            case "number":
+                String n = raw.trim();
+                if (n.contains("."))
+                {
+                    return Convert.toDouble(n);
+                }
+                return Convert.toLong(n);
+            case "json":
+            case "text":
+            case "string":
+            default:
+                return raw;
+        }
+    }
+
+    /**
+     * 兼容 Y/N、true/false、1/0
+     */
+    private boolean parseYnFlag(String raw, boolean defaultVal)
+    {
+        if (StringUtils.isEmpty(raw))
+        {
+            return defaultVal;
+        }
+        String v = raw.trim();
+        if ("Y".equalsIgnoreCase(v) || "true".equalsIgnoreCase(v) || "1".equals(v) || "yes".equalsIgnoreCase(v))
+        {
+            return true;
+        }
+        if ("N".equalsIgnoreCase(v) || "false".equalsIgnoreCase(v) || "0".equals(v) || "no".equalsIgnoreCase(v))
+        {
+            return false;
+        }
+        return Convert.toBool(v, defaultVal);
+    }
+
+    /**
      * 获取验证码开关
      *
      * @return true开启，false关闭
@@ -201,7 +266,20 @@ public class SysConfigServiceImpl implements SysConfigService {
         {
             return true;
         }
-        return Convert.toBool(captchaOnOff);
+        return parseYnFlag(captchaOnOff, true);
+    }
+
+    /**
+     * 单点登录开关：开启后 PC / 移动端各限一个在线会话
+     */
+    public boolean selectSsoOnOff()
+    {
+        String sso = selectSysConfigByKey("sys.account.ssoEnabled");
+        if (StringUtils.isEmpty(sso))
+        {
+            return true;
+        }
+        return parseYnFlag(sso, true);
     }
 
     /**
