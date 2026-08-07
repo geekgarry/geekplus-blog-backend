@@ -111,10 +111,10 @@ public class ShiroConfig {
         map.put("/covid/**","anon");
         map.put("/ai/**","anon");
         map.put("/geekplusapp/**","anon");
-        map.put("/websocket/**","anon");
-        map.put("/chatAIWS/**","anon");
-        map.put("/chatAIApp/**","anon");
-        map.put("/chatAITopic/**","anon");
+        // map.put("/websocket/**","anon");
+        // map.put("/chatAIWS/**","anon");
+        // map.put("/chatAIApp/**","anon");
+        // map.put("/chatAITopic/**","anon");
         map.put("/profile/**","invalidRequest,signedAnon");
         map.put("/common/getQRCode**","anon");
         map.put("/common/download**","anon");

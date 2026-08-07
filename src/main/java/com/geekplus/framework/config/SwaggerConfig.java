@@ -68,8 +68,8 @@ public class SwaggerConfig {
         return new ApiInfoBuilder()
                 .title("GeekPlus极客普拉斯项目API") //  可以用来自定义API的主标题
                 .description("GeekPlus极客普拉斯项目SwaggerAPI管理") // 可以用来描述整体的API
-                .contact(new Contact("GeekPlus","https://www.geekplus.xyz","geekgarry@hotmail.com"))
-                .termsOfServiceUrl("geekplus.xyz") // 用于定义服务的域名
+                .contact(new Contact("GeekPlus","https://www.xxx.xxx","xxx@hotmail.com"))
+                .termsOfServiceUrl("xxx.xxx") // 用于定义服务的域名
                 .version("1.0") // 可以用来定义版本。
                 .build(); //
     }
