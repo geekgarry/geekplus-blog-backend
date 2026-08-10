@@ -414,4 +414,25 @@
          sm.status = 0  AND sr.status = 0
     </select>
 
+    <!--角色全部菜单（含按钮），供 RBAC 缓存 -->
+    <select id="selectMenusByRoleId" parameterType="Long" resultMap="BaseResultMap">
+        select distinct sm.menu_id, sm.parent_id, sm.menu_name, sm.path, sm.component, sm.visible, sm.status,
+               ifnull(sm.perms,'') as perms, sm.is_frame, sm.is_cache, sm.menu_type, sm.icon, sm.order_num, sm.create_time
+        from sys_menu sm
+            left join sys_role_menu srm on sm.menu_id = srm.menu_id
+            left join sys_role sr on srm.role_id = sr.role_id
+        where sr.role_id = #{roleId} and sm.status = 0 and sr.status = 0
+        order by sm.parent_id, sm.order_num
+    </select>
+
+    <select id="selectPermsByRoleId" parameterType="Long" resultType="String">
+        select distinct sm.perms
+        from sys_menu sm
+            left join sys_role_menu srm on sm.menu_id = srm.menu_id
+            left join sys_role sr on srm.role_id = sr.role_id
+        where sr.role_id = #{roleId}
+          and sm.status = 0 and sr.status = 0
+          and sm.perms is not null and sm.perms != ''
+    </select>
+
 </mapper>

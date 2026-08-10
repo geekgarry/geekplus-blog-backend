@@ -40,6 +40,9 @@ public class SysRoleController extends BaseController {
     @Resource
     private SysRoleDeptService sysRoleDeptService;
 
+    @Resource
+    private com.geekplus.webapp.system.service.cache.RbacCacheService rbacCacheService;
+
     /**
      * 增加 系统角色表
      */
@@ -48,7 +51,11 @@ public class SysRoleController extends BaseController {
     @PostMapping("/add")
     @RepeatSubmit
     public Result add(@RequestBody SysRole sysRole) {
-        return toResult(sysRoleService.insertSysRole(sysRole));
+        Result r = toResult(sysRoleService.insertSysRole(sysRole));
+        if (sysRole.getRoleId() != null) {
+            rbacCacheService.evictRole(sysRole.getRoleId());
+        }
+        return r;
     }
 
     /**
@@ -58,7 +65,9 @@ public class SysRoleController extends BaseController {
     @Log(title = "角色管理",businessType = BusinessType.DELETE,operatorType = OperatorType.MANAGE,isSaveRequestData = false)
     @GetMapping("/delete")
     public Result remove(@RequestParam Long roleId) {
-        return toResult(sysRoleService.deleteSysRoleById(roleId));
+        Result r = toResult(sysRoleService.deleteSysRoleById(roleId));
+        rbacCacheService.evictRole(roleId);
+        return r;
     }
 
     /**
@@ -68,7 +77,13 @@ public class SysRoleController extends BaseController {
     @Log(title = "角色管理",businessType = BusinessType.DELETE,operatorType = OperatorType.MANAGE,isSaveRequestData = false)
     @DeleteMapping("/{roleIds}")
     public Result remove(@PathVariable Long[] roleIds) {
-        return toResult(sysRoleService.deleteSysRoleByIds(roleIds));
+        Result r = toResult(sysRoleService.deleteSysRoleByIds(roleIds));
+        if (roleIds != null) {
+            for (Long id : roleIds) {
+                rbacCacheService.evictRole(id);
+            }
+        }
+        return r;
     }
 
     /**
@@ -78,7 +93,11 @@ public class SysRoleController extends BaseController {
     @Log(title = "角色管理",businessType = BusinessType.UPDATE,operatorType = OperatorType.MANAGE,isSaveRequestData = false)
     @PostMapping("/update")
     public Result edit(@RequestBody SysRole sysRole) {
-        return toResult(sysRoleService.updateSysRole(sysRole));
+        Result r = toResult(sysRoleService.updateSysRole(sysRole));
+        if (sysRole.getRoleId() != null) {
+            rbacCacheService.evictRole(sysRole.getRoleId());
+        }
+        return r;
     }
 
     /**
@@ -176,6 +195,7 @@ public class SysRoleController extends BaseController {
             }
             sysRoleDeptService.batchInsert(list);
         }
+        rbacCacheService.evictRole(sysRole.getRoleId());
         return toResult(rows);
     }
 }

@@ -4,10 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.geekplus.common.annotation.Log;
 import com.geekplus.common.domain.LoginUser;
 import com.geekplus.common.util.http.IPUtils;
-import com.geekplus.common.util.http.IpAddressUtil;
 import com.geekplus.webapp.system.entity.SysOperLog;
 import com.geekplus.webapp.common.service.SysUserTokenService;
-import com.geekplus.webapp.system.service.SysOperLogService;
 import eu.bitwalker.useragentutils.UserAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -39,8 +37,6 @@ public class OperateLogAspect {
     private static final Logger logger = LoggerFactory.getLogger(OperateLogAspect.class);
     //保证同步安全性（可以不加）
     private ThreadLocal<Long> threadLocal = new ThreadLocal<>();
-    @Resource
-    private SysOperLogService sysOperLogService;
     @Resource
     private SysUserTokenService sysUserTokenService;
 
@@ -99,7 +95,6 @@ public class OperateLogAspect {
             String target = joinPoint.getSignature().getDeclaringTypeName() + "." +joinPoint.getSignature().getName();// 得到该连接点的类名和方法名
             UserAgent userAgent = UserAgent.parseUserAgentString(request.getHeader("User-Agent"));
             String ip = IPUtils.getIpAddr(request);
-            String address = IpAddressUtil.getRealAddressByIP(ip);
 
             LoginUser sysUser= sysUserTokenService.getLoginUser(request);
             if(sysUser==null){
@@ -107,13 +102,10 @@ public class OperateLogAspect {
             }else{
                 sysOperLog.setOperName(sysUser.getUsername());
             }
-            // 获取客户端操作系统
             String os = userAgent.getOperatingSystem().getName();
-            // 获取客户端浏览器
             String browser = userAgent.getBrowser().getName();
             sysOperLog.setTitle(controllerLog.title());
-            sysOperLog.setOperIp(ip);//request.getRemoteHost()
-            sysOperLog.setOperLocation(address);
+            sysOperLog.setOperIp(ip);
             sysOperLog.setMethod(target);
             sysOperLog.setOperUrl(request.getRequestURI());
             sysOperLog.setOperParam(argsArrayToString(joinPoint.getArgs()));
@@ -125,7 +117,9 @@ public class OperateLogAspect {
             sysOperLog.setRequestMethod(request.getMethod());
             sysOperLog.setOperBrowser(browser);
             sysOperLog.setOperOs(os);
-            sysOperLogService.insertSysOperLog(sysOperLog);
+            // IP 归属 + 落库异步，避免 @Log 接口被外网查询拖慢
+            com.geekplus.framework.manager.AsyncManager.me()
+                    .execute(com.geekplus.framework.manager.LogFactory.recordOper(sysOperLog));
         } catch (Exception ex) {
             // 记录本地异常日志
             log.error("==前置通知异常==");

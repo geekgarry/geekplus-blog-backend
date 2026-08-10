@@ -48,21 +48,17 @@ public class LogFactory {
                 s.append(LogUtil.getBlock(username));
                 s.append(LogUtil.getBlock(status));
                 s.append(LogUtil.getBlock(message));
-                // 打印信息到日志
                 log.info(s.toString(), args);
-                // 获取客户端操作系统
                 String os = userAgent.getOperatingSystem().getName();
-                // 获取客户端浏览器
                 String browser = userAgent.getBrowser().getName();
-                // 封装对象
                 SysLoginLog logininfor = new SysLoginLog();
                 logininfor.setLogUsername(username);
                 logininfor.setLogLoginIp(ip);
-                //logininfor.set(address);
+                logininfor.setLoginLocation(address);
                 logininfor.setLogBrowser(browser);
                 logininfor.setLogSystem(os);
                 logininfor.setLogMsg(message);
-                // 日志状态
+                logininfor.setLogTime(new java.util.Date());
                 if (Constant.LOGIN_SUCCESS.equals(status) || Constant.LOGOUT.equals(status))
                 {
                     logininfor.setLogType(1);
@@ -71,7 +67,6 @@ public class LogFactory {
                 {
                     logininfor.setLogType(0);
                 }
-                // 插入数据
                 SpringUtil.getBean(SysLoginLogService.class).insertSysLoginLog(logininfor);
             }
         };

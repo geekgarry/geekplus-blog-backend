@@ -96,4 +96,10 @@ public interface SysMenuMapper {
 
     //根据角色ID查询菜单权限permission列表
     List<Integer> selectMenuIdListByRoleId(Long roleId);
+
+    /** 角色下全部菜单行（含按钮 B），用于缓存 */
+    List<SysMenu> selectMenusByRoleId(Long roleId);
+
+    /** 角色权限标识字符串列表 */
+    List<String> selectPermsByRoleId(Long roleId);
 }

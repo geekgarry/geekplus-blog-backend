@@ -79,7 +79,7 @@ public class ThumbnailUtils {
         String base64Str="";
         String serverImgPath;
         try {
-            //geekplus是图片的全网址是否含有的网站域名(例如：geekplus.cc)，Constant.RESOURCE_PREFIX是后端静态资源访问映射的地址(http://geekplus.xyz)
+            //geekplus是图片的全网址是否含有的网站域名(例如：geekplus.xx)，Constant.RESOURCE_PREFIX是后端静态资源访问映射的地址(http://geekplus.xx)
             if(imgPath.contains("geekplus") || imgPath.contains(Constant.RESOURCE_PREFIX)){
                 serverImgPath=imgPath.substring(imgPath.indexOf(Constant.RESOURCE_PREFIX)).replaceAll(Constant.RESOURCE_PREFIX, baseDir);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();

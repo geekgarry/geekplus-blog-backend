@@ -33,6 +33,9 @@ public class SysConfigServiceImpl implements SysConfigService {
     @Autowired
     private RedisUtil redisUtil;
 
+    @Autowired
+    private com.geekplus.common.cache.TwoLevelCache twoLevelCache;
+
     /**
      * 项目启动时，初始化参数到缓存
      */
@@ -51,7 +54,7 @@ public class SysConfigServiceImpl implements SysConfigService {
         int row = sysConfigMapper.insertSysConfig(sysConfig);
         if (row > 0)
         {
-            redisUtil.setCacheObject(getCacheKey(sysConfig.getConfigKey()), sysConfig.getConfigValue());
+            twoLevelCache.put(getCacheKey(sysConfig.getConfigKey()), sysConfig.getConfigValue());
         }
         return row;
     }
@@ -85,7 +88,7 @@ public class SysConfigServiceImpl implements SysConfigService {
                 throw new BusinessException(String.format("内置参数【%1$s】不能删除 ", config.getConfigKey()));
             }
             sysConfigMapper.deleteSysConfigById(configId);
-            redisUtil.del(getCacheKey(config.getConfigKey()));
+            twoLevelCache.evict(getCacheKey(config.getConfigKey()));
         }
     }
 
@@ -97,7 +100,7 @@ public class SysConfigServiceImpl implements SysConfigService {
         int row = sysConfigMapper.updateSysConfig(sysConfig);
         if (row > 0)
         {
-            redisUtil.setCacheObject(getCacheKey(sysConfig.getConfigKey()), sysConfig.getConfigValue());
+            twoLevelCache.put(getCacheKey(sysConfig.getConfigKey()), sysConfig.getConfigValue());
         }
         return row;
     }
@@ -133,7 +136,7 @@ public class SysConfigServiceImpl implements SysConfigService {
         List<SysConfig> configsList = sysConfigMapper.selectSysConfigList(new SysConfig());
         for (SysConfig config : configsList)
         {
-            redisUtil.setCacheObject(getCacheKey(config.getConfigKey()), config.getConfigValue());
+            twoLevelCache.put(getCacheKey(config.getConfigKey()), config.getConfigValue());
         }
     }
 
@@ -145,6 +148,7 @@ public class SysConfigServiceImpl implements SysConfigService {
     {
         Collection<String> keys = redisUtil.keys(Constant.SYS_CONFIG_KEY + "*");
         redisUtil.del(keys);
+        twoLevelCache.clearLocal();
     }
 
     /**
@@ -173,20 +177,14 @@ public class SysConfigServiceImpl implements SysConfigService {
     @Override
     public String selectSysConfigByKey(String configKey)
     {
-        String configValue = Convert.toStr(redisUtil.getCacheObject(getCacheKey(configKey)));
-        if (StringUtils.isNotEmpty(configValue))
-        {
-            return configValue;
-        }
-        SysConfig config = new SysConfig();
-        config.setConfigKey(configKey);
-        SysConfig retConfig = sysConfigMapper.selectConfig(config);
-        if (StringUtils.isNotNull(retConfig))
-        {
-            redisUtil.setCacheObject(getCacheKey(configKey), retConfig.getConfigValue());
-            return retConfig.getConfigValue();
-        }
-        return StringUtils.EMPTY;
+        String cacheKey = getCacheKey(configKey);
+        String configValue = twoLevelCache.get(cacheKey, () -> {
+            SysConfig config = new SysConfig();
+            config.setConfigKey(configKey);
+            SysConfig retConfig = sysConfigMapper.selectConfig(config);
+            return retConfig != null ? retConfig.getConfigValue() : StringUtils.EMPTY;
+        });
+        return configValue != null ? configValue : StringUtils.EMPTY;
     }
 
     /**

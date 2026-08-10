@@ -71,10 +71,40 @@ public class SysUserTokenService {
 
     public String createToken(LoginUser loginUser) {
         String tokenUuid = UUIDUtil.getShaUUID(loginUser.getUsername());
-        String token = refreshToken(tokenUuid, loginUser, true);
+        // 登录主路径不做外网 IP 归属查询（可耗时数秒）；UA/IP 同步写入，归属地异步回填
+        String token = refreshToken(tokenUuid, loginUser, false);
         String clientType = resolveClientType(ServletUtil.getRequest());
         addOnlineToken(loginUser.getUsername(), tokenUuid, clientType);
+        enrichLoginLocationAsync(loginUser.getUsername(), loginUser.getLoginIp());
         return token;
+    }
+
+    /** 异步回填登录归属地，不阻塞发 token */
+    private void enrichLoginLocationAsync(String username, String ip) {
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(ip)) {
+            return;
+        }
+        final String userKey = username;
+        final String loginIp = ip;
+        try {
+            com.geekplus.framework.manager.AsyncManager.me().execute(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        String loc = IpAddressUtil.getRealAddressByIP(loginIp);
+                        LoginUser cached = (LoginUser) redisUtil.get(getTokenKey(userKey));
+                        if (cached != null) {
+                            cached.setLoginLocation(loc);
+                            refreshRedisUser(cached);
+                        }
+                    } catch (Exception e) {
+                        log.warn("异步回填登录归属地失败 user={} err={}", userKey, e.getMessage());
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("调度归属地任务失败: {}", e.getMessage());
+        }
     }
 
     public String refreshToken(String tokenId, LoginUser loginUser) {
@@ -153,6 +183,8 @@ public class SysUserTokenService {
 
     public void refreshRedisUser(LoginUser loginUser) {
         String userKey = loginUser.getUsername();
+        // 会话瘦身：不把大权限集写入 Redis，鉴权时按角色从 RBAC 缓存组装
+        loginUser.setSysMenuList(null);
         redisUtil.set(getTokenKey(userKey), loginUser, expireTime, TimeUnit.SECONDS);
         redisUtil.expire(getUserOnlineToken(userKey, "pc"), expireTime, TimeUnit.SECONDS);
         redisUtil.expire(getUserOnlineToken(userKey, "mobile"), expireTime, TimeUnit.SECONDS);
@@ -347,6 +379,8 @@ public class SysUserTokenService {
             } catch (Exception e) {
                 loginUser.setLoginLocation("UNKNOWN");
             }
+        } else if (StringUtils.isEmpty(loginUser.getLoginLocation())) {
+            loginUser.setLoginLocation(IPUtils.internalIp(ip) ? "内网IP" : "");
         }
         loginUser.setOs(userAgent.getOperatingSystem().getName());
         loginUser.setBrowser(userAgent.getBrowser().getName());

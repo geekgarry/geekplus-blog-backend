@@ -1,0 +1,249 @@
+package com.geekplus.webapp.system.service.cache;
+
+import com.geekplus.common.cache.TwoLevelCache;
+import com.geekplus.common.constant.Constant;
+import com.geekplus.common.redis.RedisUtil;
+import com.geekplus.common.util.string.StringUtils;
+import com.geekplus.webapp.system.entity.SysMenu;
+import com.geekplus.webapp.system.entity.SysRole;
+import com.geekplus.webapp.system.mapper.SysMenuMapper;
+import com.geekplus.webapp.system.mapper.SysRoleDeptMapper;
+import com.geekplus.webapp.system.mapper.SysRoleMapper;
+import com.geekplus.webapp.system.vo.SysRoleVO;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import javax.annotation.Resource;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * RBAC 公共缓存：按角色只存一份 menus（含按钮）+ perms + depts。
+ * 路由菜单由 menus 过滤 menuType!=B 得到，不再单独缓存 routes。
+ */
+@Slf4j
+@Service
+public class RbacCacheService {
+
+    @Resource
+    private TwoLevelCache twoLevelCache;
+    @Resource
+    private RedisUtil redisUtil;
+    @Resource
+    private SysMenuMapper sysMenuMapper;
+    @Resource
+    private SysRoleDeptMapper sysRoleDeptMapper;
+    @Resource
+    private SysRoleMapper sysRoleMapper;
+
+    /** 启动完成后后台预热，不阻塞应用就绪与首批登录 */
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        try {
+            com.geekplus.framework.manager.AsyncManager.me().execute(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    warmUp();
+                }
+            });
+        } catch (Exception e) {
+            // 调度器未就绪时同步兜底一次
+            warmUp();
+        }
+    }
+
+    public void warmUp() {
+        try {
+            List<SysRole> roles = sysRoleMapper.selectSysRoleList(new SysRole());
+            if (roles == null || roles.isEmpty()) {
+                return;
+            }
+            int n = 0;
+            for (SysRole role : roles) {
+                if (role == null || role.getRoleId() == null) {
+                    continue;
+                }
+                if (role.getStatus() != null && role.getStatus() != 0) {
+                    continue;
+                }
+                getRolePerms(role.getRoleId());
+                getRoleMenus(role.getRoleId());
+                getRoleDeptIds(role.getRoleId());
+                n++;
+            }
+            log.info("RBAC 缓存预热完成，角色数={}", n);
+        } catch (Exception e) {
+            log.warn("RBAC 缓存预热跳过: {}", e.getMessage());
+        }
+    }
+
+    public Set<String> getRolePerms(Long roleId) {
+        if (roleId == null) {
+            return Collections.emptySet();
+        }
+        String key = Constant.RBAC_ROLE_PERMS + roleId;
+        Set<String> cached = twoLevelCache.get(key, () -> loadPermsFromDb(roleId));
+        return cached != null ? cached : Collections.emptySet();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<SysMenu> getRoleMenus(Long roleId) {
+        if (roleId == null) {
+            return Collections.emptyList();
+        }
+        String key = Constant.RBAC_ROLE_MENUS + roleId;
+        List<SysMenu> cached = twoLevelCache.get(key, () -> loadMenusFromDb(roleId));
+        return cached != null ? cached : Collections.emptyList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Long> getRoleDeptIds(Long roleId) {
+        if (roleId == null) {
+            return Collections.emptyList();
+        }
+        String key = Constant.RBAC_ROLE_DEPTS + roleId;
+        List<Long> cached = twoLevelCache.get(key, () -> {
+            List<Long> ids = sysRoleDeptMapper.selectDeptIdsByRoleId(roleId);
+            return ids != null ? new ArrayList<>(ids) : new ArrayList<Long>();
+        });
+        return cached != null ? cached : Collections.emptyList();
+    }
+
+    public Set<String> resolvePerms(List<SysRoleVO> roles) {
+        Set<String> perms = new HashSet<>();
+        if (roles == null) {
+            return perms;
+        }
+        for (SysRoleVO role : roles) {
+            if (role == null || role.getRoleId() == null) {
+                continue;
+            }
+            perms.addAll(getRolePerms(role.getRoleId()));
+        }
+        return perms;
+    }
+
+    /** 多角色菜单并集（含按钮） */
+    public List<SysMenu> resolveMenus(List<SysRoleVO> roles) {
+        Map<Long, SysMenu> map = new LinkedHashMap<>();
+        if (roles == null) {
+            return new ArrayList<>();
+        }
+        for (SysRoleVO role : roles) {
+            if (role == null || role.getRoleId() == null) {
+                continue;
+            }
+            for (SysMenu m : getRoleMenus(role.getRoleId())) {
+                if (m != null && m.getMenuId() != null) {
+                    map.putIfAbsent(m.getMenuId(), m);
+                }
+            }
+        }
+        return new ArrayList<>(map.values());
+    }
+
+    /** 路由用：从 menus 过滤掉按钮 B，不另占 Redis key */
+    public List<SysMenu> resolveRouteMenus(List<SysRoleVO> roles) {
+        return resolveMenus(roles).stream()
+                .filter(m -> m.getMenuType() == null || !"B".equals(m.getMenuType()))
+                .collect(Collectors.toList());
+    }
+
+    public void evictRole(Long roleId) {
+        if (roleId == null) {
+            return;
+        }
+        twoLevelCache.evict(Constant.RBAC_ROLE_PERMS + roleId);
+        twoLevelCache.evict(Constant.RBAC_ROLE_MENUS + roleId);
+        twoLevelCache.evict(Constant.RBAC_ROLE_DEPTS + roleId);
+        // 兼容清理历史 routes key（若线上曾写入）
+        twoLevelCache.evict(Constant.RBAC_ROLE_ROUTE_MENUS + roleId);
+        bumpPermVer();
+    }
+
+    public void evictRoles(Collection<Long> roleIds) {
+        if (roleIds == null) {
+            return;
+        }
+        for (Long id : roleIds) {
+            evictRole(id);
+        }
+    }
+
+    public void evictAllRoles() {
+        try {
+            List<SysRole> roles = sysRoleMapper.selectSysRoleList(new SysRole());
+            if (roles != null) {
+                for (SysRole role : roles) {
+                    if (role != null && role.getRoleId() != null) {
+                        Long id = role.getRoleId();
+                        twoLevelCache.evict(Constant.RBAC_ROLE_PERMS + id);
+                        twoLevelCache.evict(Constant.RBAC_ROLE_MENUS + id);
+                        twoLevelCache.evict(Constant.RBAC_ROLE_DEPTS + id);
+                        twoLevelCache.evict(Constant.RBAC_ROLE_ROUTE_MENUS + id);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("evictAllRoles 失败: {}", e.getMessage());
+        }
+        bumpPermVer();
+        twoLevelCache.clearLocal();
+    }
+
+    @Async
+    public void evictRoleAsync(Long roleId) {
+        evictRole(roleId);
+    }
+
+    @Async
+    public void evictAllRolesAsync() {
+        evictAllRoles();
+    }
+
+    public long currentPermVer() {
+        Object v = redisUtil.get(Constant.RBAC_PERM_VER);
+        if (v == null) {
+            return 0L;
+        }
+        try {
+            return Long.parseLong(String.valueOf(v));
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
+    private void bumpPermVer() {
+        try {
+            if (!redisUtil.hasKey(Constant.RBAC_PERM_VER)) {
+                redisUtil.set(Constant.RBAC_PERM_VER, 1L);
+            } else {
+                redisUtil.incr(Constant.RBAC_PERM_VER, 1);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private Set<String> loadPermsFromDb(Long roleId) {
+        List<String> raw = sysMenuMapper.selectPermsByRoleId(roleId);
+        Set<String> set = new HashSet<>();
+        if (raw == null) {
+            return set;
+        }
+        for (String perm : raw) {
+            if (StringUtils.isEmpty(perm)) {
+                continue;
+            }
+            set.addAll(Arrays.asList(perm.trim().split(",")));
+        }
+        return set.stream().filter(StringUtils::isNotEmpty).collect(Collectors.toCollection(HashSet::new));
+    }
+
+    private List<SysMenu> loadMenusFromDb(Long roleId) {
+        List<SysMenu> list = sysMenuMapper.selectMenusByRoleId(roleId);
+        return list != null ? new ArrayList<>(list) : new ArrayList<>();
+    }
+}

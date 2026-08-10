@@ -27,13 +27,22 @@ public class SysMenuServiceImpl implements SysMenuService {
     @Resource
     private SysMenuMapper sysMenuMapper;
 
+    @Resource
+    private com.geekplus.webapp.system.service.cache.RbacCacheService rbacCacheService;
+
+    private void afterMenuChange() {
+        rbacCacheService.evictAllRolesAsync();
+    }
+
     /**
     * 增加
     * @param sysMenu
     * @return 系统菜单权限
     */
     public Integer insertSysMenu(SysMenu sysMenu){
-        return sysMenuMapper.insertSysMenu(sysMenu);
+        Integer n = sysMenuMapper.insertSysMenu(sysMenu);
+        afterMenuChange();
+        return n;
     }
 
     /**
@@ -42,7 +51,9 @@ public class SysMenuServiceImpl implements SysMenuService {
     * @return 系统菜单权限
     */
     public Integer batchInsertSysMenuList(List<SysMenu> sysMenuList){
-        return sysMenuMapper.batchInsertSysMenuList(sysMenuList);
+        Integer n = sysMenuMapper.batchInsertSysMenuList(sysMenuList);
+        afterMenuChange();
+        return n;
     }
 
     /**
@@ -50,14 +61,18 @@ public class SysMenuServiceImpl implements SysMenuService {
     * @param menuId
     */
     public Integer deleteSysMenuById(Long menuId){
-        return sysMenuMapper.deleteSysMenuById(menuId);
+        Integer n = sysMenuMapper.deleteSysMenuById(menuId);
+        afterMenuChange();
+        return n;
     }
 
     /**
     * 批量删除
     */
     public Integer deleteSysMenuByIds(Long[] menuIds){
-        return sysMenuMapper.deleteSysMenuByIds(menuIds);
+        Integer n = sysMenuMapper.deleteSysMenuByIds(menuIds);
+        afterMenuChange();
+        return n;
     }
 
     /**
@@ -65,7 +80,9 @@ public class SysMenuServiceImpl implements SysMenuService {
     * @param sysMenu
     */
     public Integer updateSysMenu(SysMenu sysMenu){
-        return sysMenuMapper.updateSysMenu(sysMenu);
+        Integer n = sysMenuMapper.updateSysMenu(sysMenu);
+        afterMenuChange();
+        return n;
     }
 
     /**

@@ -5,40 +5,38 @@ import com.geekplus.common.domain.BaseEntity;
 import com.geekplus.common.domain.LoginUser;
 import com.geekplus.common.util.string.StringUtils;
 import com.geekplus.webapp.system.entity.SysUser;
+import com.geekplus.webapp.system.service.cache.RbacCacheService;
 import com.geekplus.webapp.system.vo.SysDeptVO;
 import com.geekplus.webapp.system.vo.SysRoleVO;
 import org.apache.shiro.SecurityUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 数据权限过滤切面（若依风格）：
- * 将 SQL 片段写入实体 params.dataScope，供 Mapper ${params.dataScope} 拼接。
- * 支持 deptAlias / userAlias 为空（无表别名）的场景。
+ * 数据权限过滤切面（若依风格）。
+ * 自定部门优先读 RBAC 双重缓存中的部门 ID 列表。
  */
 @Aspect
 @Component
 public class DataScopeAspect
 {
-    /** 全部数据权限 */
     public static final String DATA_SCOPE_ALL = "1";
-    /** 自定数据权限 */
     public static final String DATA_SCOPE_CUSTOM = "2";
-    /** 部门数据权限 */
     public static final String DATA_SCOPE_DEPT = "3";
-    /** 部门及以下数据权限 */
     public static final String DATA_SCOPE_DEPT_AND_CHILD = "4";
-    /** 仅本人数据权限 */
     public static final String DATA_SCOPE_SELF = "5";
-
-    /** 数据权限过滤关键字 */
     public static final String DATA_SCOPE = "dataScope";
+
+    @Autowired
+    private RbacCacheService rbacCacheService;
 
     @Before("@annotation(controllerDataScope)")
     public void doBefore(JoinPoint point, DataScope controllerDataScope) throws Throwable
@@ -60,13 +58,11 @@ public class DataScopeAspect
         }
         catch (Exception ignored)
         {
-            // 未登录或无 Subject 时跳过
         }
         if (loginUser == null || loginUser.getUserId() == null)
         {
             return;
         }
-        // 超级管理员不过滤
         if (SysUser.isAdmin(loginUser.getUserId()))
         {
             return;
@@ -74,16 +70,12 @@ public class DataScopeAspect
         dataScopeFilter(joinPoint, loginUser, controllerDataScope.deptAlias(), controllerDataScope.userAlias());
     }
 
-    /**
-     * 按角色 dataScope 拼装过滤条件；多角色取 OR，任一角色为全部权限则不加过滤。
-     */
-    public static void dataScopeFilter(JoinPoint joinPoint, LoginUser user, String deptAlias, String userAlias)
+    public void dataScopeFilter(JoinPoint joinPoint, LoginUser user, String deptAlias, String userAlias)
     {
         StringBuilder sqlString = new StringBuilder();
         List<SysRoleVO> roles = user.getSysRoleList();
         if (roles == null || roles.isEmpty())
         {
-            // 无角色：强制不可见（避免误放开）
             putDataScope(joinPoint, " AND (1 = 0) ");
             return;
         }
@@ -111,9 +103,18 @@ public class DataScopeAspect
             }
             else if (DATA_SCOPE_CUSTOM.equals(dataScope))
             {
-                sqlString.append(StringUtils.format(
-                    " OR {}dept_id IN ( SELECT dept_id FROM sys_role_dept WHERE role_id = {} ) ",
-                    deptPrefix, role.getRoleId()));
+                List<Long> deptIds = rbacCacheService.getRoleDeptIds(role.getRoleId());
+                if (deptIds != null && !deptIds.isEmpty())
+                {
+                    String in = deptIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+                    sqlString.append(StringUtils.format(" OR {}dept_id IN ( {} ) ", deptPrefix, in));
+                }
+                else
+                {
+                    sqlString.append(StringUtils.format(
+                        " OR {}dept_id IN ( SELECT dept_id FROM sys_role_dept WHERE role_id = {} ) ",
+                        deptPrefix, role.getRoleId()));
+                }
             }
             else if (DATA_SCOPE_DEPT.equals(dataScope))
             {
@@ -133,7 +134,6 @@ public class DataScopeAspect
             }
             else if (DATA_SCOPE_SELF.equals(dataScope))
             {
-                // 有用户别名时优先按 user_id；否则用 create_by / user_id（sys_user 列表无别名）
                 if (StringUtils.isNotEmpty(userAlias))
                 {
                     sqlString.append(StringUtils.format(" OR {}user_id = {} ", userPrefix, user.getUserId()));
@@ -153,9 +153,6 @@ public class DataScopeAspect
         }
     }
 
-    /**
-     * 写入 params.dataScope；兼容 BaseEntity 与 SysUser（未继承 BaseEntity）。
-     */
     private static void putDataScope(JoinPoint joinPoint, String sql)
     {
         Object[] args = joinPoint.getArgs();
@@ -179,16 +176,13 @@ public class DataScopeAspect
                 ((SysUser) arg).getParams().put(DATA_SCOPE, sql);
                 return;
             }
-            // 兜底：反射 getParams
             try
             {
-                Method getParams = arg.getClass().getMethod("getParams");
-                Object params = getParams.invoke(arg);
+                Method m = arg.getClass().getMethod("getParams");
+                Object params = m.invoke(arg);
                 if (params instanceof Map)
                 {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map = (Map<String, Object>) params;
-                    map.put(DATA_SCOPE, sql);
+                    ((Map) params).put(DATA_SCOPE, sql);
                     return;
                 }
             }
@@ -198,11 +192,23 @@ public class DataScopeAspect
         }
     }
 
-    /**
-     * 防止前端传参污染 dataScope
-     */
     private void clearDataScope(final JoinPoint joinPoint)
     {
-        putDataScope(joinPoint, "");
+        Object[] args = joinPoint.getArgs();
+        if (args == null)
+        {
+            return;
+        }
+        for (Object arg : args)
+        {
+            if (arg instanceof BaseEntity)
+            {
+                ((BaseEntity) arg).getParams().put(DATA_SCOPE, "");
+            }
+            else if (arg instanceof SysUser)
+            {
+                ((SysUser) arg).getParams().put(DATA_SCOPE, "");
+            }
+        }
     }
 }

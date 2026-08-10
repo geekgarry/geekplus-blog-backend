@@ -71,8 +71,11 @@ public class SysUserLoginController extends BaseController {
     @Resource
     private EmailUtil emailUtil;
 
-    @Autowired
+    @Resource
     private SysConfigServiceImpl configService;
+
+    @Resource
+    private com.geekplus.webapp.system.service.cache.RbacCacheService rbacCacheService;
 
     @PostMapping("/login")
     @RepeatLogin
@@ -107,12 +110,40 @@ public class SysUserLoginController extends BaseController {
         // 认证通过后再写登录 IP，避免失败登录也打库
         sysUserService.updateSysUserByUsername(loginBody.getUsername(), IPUtils.getIpAddr(ServletUtil.getRequest()));
 
-        LoginUser loginUser = new LoginUser(sysUserInfo, sysUserService.getSysUserMenuPerms(sysUserInfo.getUserId()));
+        LoginUser loginUser = new LoginUser(sysUserInfo, Collections.emptySet());
+        // 角色缓存后台预热（不阻塞返回 token），getMenu 大概率命中
+        warmRoleCacheAsync(loginUser.getSysRoleList());
 
         LogUtil.recordLoginInfo(loginBody, Constant.LOGIN_SUCCESS,"登录成功");
         Map<String, Object> res = new HashMap<>();
         res.put("token", tokenService.createToken(loginUser));
         return Result.success(res);
+    }
+
+    private void warmRoleCacheAsync(List<SysRoleVO> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return;
+        }
+        final List<Long> roleIds = roles.stream()
+                .filter(r -> r != null && r.getRoleId() != null)
+                .map(SysRoleVO::getRoleId)
+                .collect(Collectors.toList());
+        if (roleIds.isEmpty()) {
+            return;
+        }
+        try {
+            com.geekplus.framework.manager.AsyncManager.me().execute(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    for (Long roleId : roleIds) {
+                        rbacCacheService.getRolePerms(roleId);
+                        rbacCacheService.getRoleMenus(roleId);
+                    }
+                }
+            });
+        } catch (Exception e) {
+            log.warn("异步预热角色缓存失败: {}", e.getMessage());
+        }
     }
 
     /**
@@ -191,22 +222,24 @@ public class SysUserLoginController extends BaseController {
 
     @GetMapping("/getMenu")
     public Result getMenuList(){
-        //LoginUser sysUser= (LoginUser) SecurityUtils.getSubject().getPrincipal();
-        //log.info("用户ID为{}",sysUser.getUserId());
         HttpServletRequest request=ServletUtil.getRequest();
         LoginUser loginUser = tokenService.getLoginUser(request);
         String userName = jwtUtil.getUserNameFromToken(tokenService.getToken(request));
-        //String userName=JwtTokenUtil.verifyResult(token).getClaim("userName").asString();
         Map<String,Object> map=new HashMap<>();
-        //log.info("=========================>"+sysUser.getUserId());
-        //List<SysMenu> menuList=sysMenuService.getMenuTreeByUserName(userName);
-        List<SysMenu> allMenuList=sysMenuService.getMenuPermsByUsername(userName);
-        //allMenuList.stream().filter(sysMenu -> !StringUtils.isEmpty(sysMenu.getPerms())).map(SysMenu::getPerms).collect(Collectors.toSet());
-        Set permsSet= loginUser.getSysMenuList();
-        List<SysMenu> menuList= SysMenuUtil.getParentMenuList(allMenuList.stream().filter(sysMenu -> !sysMenu.getMenuType().equals("B")).collect(Collectors.toList()));
+        // 菜单 / 权限优先走角色级双重缓存；路由由 menus 过滤 B，不另存 routes
+        List<SysMenu> routeMenus = rbacCacheService.resolveRouteMenus(loginUser.getSysRoleList());
+        if (routeMenus == null || routeMenus.isEmpty()) {
+            routeMenus = sysMenuService.getMenuPermsByUsername(userName).stream()
+                    .filter(sysMenu -> sysMenu.getMenuType() == null || !sysMenu.getMenuType().equals("B"))
+                    .collect(Collectors.toList());
+        }
+        Set permsSet = rbacCacheService.resolvePerms(loginUser.getSysRoleList());
+        if (permsSet == null || permsSet.isEmpty()) {
+            permsSet = loginUser.getSysMenuList();
+        }
+        List<SysMenu> menuList = SysMenuUtil.getParentMenuList(routeMenus);
         Set roleSet=loginUser.getSysRoleList().stream().filter(sysRole -> !StringUtils.isEmpty(sysRole.getRoleKey())).map(SysRoleVO::getRoleKey).collect(Collectors.toSet());
         Set roleNameSet=loginUser.getSysRoleList().stream().filter(sysRole -> !StringUtils.isEmpty(sysRole.getRoleName())).map(SysRoleVO::getRoleName).collect(Collectors.toSet());
-        //List<SysMenu> menuList=sysMenuService.getMenuTreeByUserId(loginUser.getUserId());
         map.put("username", userName);
         map.put("nickname", loginUser.getNickname());
         map.put("userId", loginUser.getUserId());
@@ -216,6 +249,7 @@ public class SysUserLoginController extends BaseController {
         map.put("permsSet", permsSet);
         map.put("roles", roleSet);
         map.put("roleNames", roleNameSet);
+        map.put("permVer", rbacCacheService.currentPermVer());
         return Result.success(map);
     }
 
@@ -251,10 +285,26 @@ public class SysUserLoginController extends BaseController {
     public Result refreshUserAuth() {
         String userName = tokenService.getSysUserName();
         SysUser sysUserInfo =sysUserService.getSysUserInfoBy(userName);
-        Set<String> sysMenus = sysUserService.getSysUserMenuPerms(sysUserInfo.getUserId());
-        LoginUser loginUser = new LoginUser(sysUserInfo, sysMenus);
+        // 会话瘦身：perms 不写入 Redis，由 RBAC 缓存提供；此处仅刷新用户/角色基本信息
+        LoginUser loginUser = new LoginUser(sysUserInfo, Collections.emptySet());
         tokenService.refreshTokenUser(loginUser);
-        return Result.success();
+        // 确保当前角色缓存可用
+        if (loginUser.getSysRoleList() != null) {
+            for (SysRoleVO r : loginUser.getSysRoleList()) {
+                if (r != null && r.getRoleId() != null) {
+                    rbacCacheService.getRolePerms(r.getRoleId());
+                }
+            }
+        }
+        return Result.success("权限已刷新");
+    }
+
+    /** 管理端手动刷新全部 RBAC 缓存 */
+    @GetMapping("/refreshRbacCache")
+    public Result refreshRbacCache() {
+        rbacCacheService.evictAllRoles();
+        rbacCacheService.warmUp();
+        return Result.success("RBAC 缓存已刷新");
     }
 
     /**

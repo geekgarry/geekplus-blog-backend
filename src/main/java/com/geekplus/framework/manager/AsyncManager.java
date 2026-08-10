@@ -2,54 +2,62 @@ package com.geekplus.framework.manager;
 
 import com.geekplus.common.util.Threads;
 import com.geekplus.common.util.spring.SpringUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.TimerTask;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * author     : geekplus
- * date       : 2022/6/7 4:58 下午
- * description: 异步任务管理器
+ * 异步任务管理器：延迟调度登录日志、操作日志、缓存预热等。
  */
 public class AsyncManager {
-    /**
-     * 操作延迟10毫秒
-     */
-    private final int OPERATE_DELAY_TIME = 10;
 
-    /**
-     * 异步操作任务调度线程池
-     */
-    private ScheduledExecutorService executor = SpringUtil.getBean("scheduledExecutorService");
+    private static final Logger log = LoggerFactory.getLogger(AsyncManager.class);
 
-    /**
-     * 单例模式
-     */
-    private AsyncManager(){}
+    private static final int OPERATE_DELAY_TIME = 10;
 
-    private static AsyncManager me = new AsyncManager();
+    private static final AsyncManager INSTANCE = new AsyncManager();
 
-    public static AsyncManager me()
-    {
-        return me;
+    private volatile ScheduledExecutorService executor;
+
+    private AsyncManager() {
     }
 
-    /**
-     * 执行任务
-     *
-     * @param task 任务
-     */
-    public void execute(TimerTask task)
-    {
-        executor.schedule(task, OPERATE_DELAY_TIME, TimeUnit.MILLISECONDS);
+    public static AsyncManager me() {
+        return INSTANCE;
     }
 
-    /**
-     * 停止任务线程池
-     */
-    public void shutdown()
-    {
-        Threads.shutdownAndAwaitTermination(executor);
+    private ScheduledExecutorService executor() {
+        ScheduledExecutorService e = executor;
+        if (e != null) {
+            return e;
+        }
+        synchronized (this) {
+            if (executor == null) {
+                try {
+                    executor = SpringUtil.getBean("scheduledExecutorService");
+                } catch (Exception ex) {
+                    log.warn("未找到 scheduledExecutorService Bean，使用兜底线程池: {}", ex.getMessage());
+                    executor = new ScheduledThreadPoolExecutor(4, r -> {
+                        Thread t = new Thread(r, "async-fallback-" + System.currentTimeMillis());
+                        t.setDaemon(true);
+                        return t;
+                    }, new ThreadPoolExecutor.CallerRunsPolicy());
+                }
+            }
+            return executor;
+        }
+    }
+
+    public void execute(TimerTask task) {
+        executor().schedule(task, OPERATE_DELAY_TIME, TimeUnit.MILLISECONDS);
+    }
+
+    public void shutdown() {
+        Threads.shutdownAndAwaitTermination(executor());
     }
 }

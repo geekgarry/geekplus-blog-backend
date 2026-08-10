@@ -29,7 +29,7 @@ public class DictUtils
      */
     public static void setDictCache(String key, List<SysDictData> dictDatas)
     {
-        SpringUtil.getBean(RedisUtil.class).set(getCacheKey(key), dictDatas);
+        SpringUtil.getBean(com.geekplus.common.cache.TwoLevelCache.class).put(getCacheKey(key), dictDatas);
     }
 
     /**
@@ -40,7 +40,7 @@ public class DictUtils
      */
     public static List<SysDictData> getDictCache(String key)
     {
-        Object cacheObj = SpringUtil.getBean(RedisUtil.class).get(getCacheKey(key));
+        Object cacheObj = SpringUtil.getBean(com.geekplus.common.cache.TwoLevelCache.class).get(getCacheKey(key), () -> null);
         if (StringUtils.isNotNull(cacheObj))
         {
             List<SysDictData> dictDatas = StringUtils.cast(cacheObj);
@@ -160,6 +160,10 @@ public class DictUtils
     {
         Collection<String> keys = SpringUtil.getBean(RedisUtil.class).keys(Constant.SYS_DICT_KEY + "*");
         SpringUtil.getBean(RedisUtil.class).del(keys);
+        try {
+            SpringUtil.getBean(com.geekplus.common.cache.TwoLevelCache.class).clearLocal();
+        } catch (Exception ignored) {
+        }
     }
 
     /**

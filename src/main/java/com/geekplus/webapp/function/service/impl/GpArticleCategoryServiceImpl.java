@@ -24,6 +24,13 @@ public class GpArticleCategoryServiceImpl implements IGpArticleCategoryService
     @Autowired
     private GpArticleCategoryMapper gpArticleCategoryMapper;
 
+    @Autowired
+    private com.geekplus.webapp.function.service.cache.BlogNavCacheService blogNavCacheService;
+
+    private void afterNavChange() {
+        blogNavCacheService.evictAsync();
+    }
+
     /**
      * 查询文章类型目录
      *
@@ -72,7 +79,9 @@ public class GpArticleCategoryServiceImpl implements IGpArticleCategoryService
     public int insertGpArticleCategory(GpArticleCategory gpArticleCategory)
     {
         gpArticleCategory.setCreateTime(DateUtil.getNowDate());
-        return gpArticleCategoryMapper.insertGpArticleCategory(gpArticleCategory);
+        int n = gpArticleCategoryMapper.insertGpArticleCategory(gpArticleCategory);
+        afterNavChange();
+        return n;
     }
 
     /**
@@ -85,7 +94,9 @@ public class GpArticleCategoryServiceImpl implements IGpArticleCategoryService
     public int updateGpArticleCategory(GpArticleCategory gpArticleCategory)
     {
         gpArticleCategory.setUpdateTime(DateUtil.getNowDate());
-        return gpArticleCategoryMapper.updateGpArticleCategory(gpArticleCategory);
+        int n = gpArticleCategoryMapper.updateGpArticleCategory(gpArticleCategory);
+        afterNavChange();
+        return n;
     }
 
     /**
@@ -97,7 +108,9 @@ public class GpArticleCategoryServiceImpl implements IGpArticleCategoryService
     @Override
     public int deleteGpArticleCategoryByIds(Integer[] ids)
     {
-        return gpArticleCategoryMapper.deleteGpArticleCategoryByIds(ids);
+        int n = gpArticleCategoryMapper.deleteGpArticleCategoryByIds(ids);
+        afterNavChange();
+        return n;
     }
 
     /**
@@ -109,7 +122,9 @@ public class GpArticleCategoryServiceImpl implements IGpArticleCategoryService
     @Override
     public int deleteGpArticleCategoryById(Integer id)
     {
-        return gpArticleCategoryMapper.deleteGpArticleCategoryById(id);
+        int n = gpArticleCategoryMapper.deleteGpArticleCategoryById(id);
+        afterNavChange();
+        return n;
     }
 
     /**
@@ -133,7 +148,7 @@ public class GpArticleCategoryServiceImpl implements IGpArticleCategoryService
       */
     @Override
     public List<GpArticleCategory> selectSubParentCategory() {
-        return gpArticleCategoryMapper.selectSubParentCategory();
+        return blogNavCacheService.getNavTree();
     }
 
     //获取属性结构菜单目录

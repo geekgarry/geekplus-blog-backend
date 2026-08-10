@@ -229,6 +229,19 @@ public interface Constant {
     String UTF8 = "utf-8";
     String GBK = "GB2312";
     String SYS_DICT_KEY = "sys_dict:";
+
+	/** 角色权限串（公共，按角色一份） */
+	String RBAC_ROLE_PERMS = "rbac:role:perms:";
+	/** 角色菜单列表（含按钮；路由侧过滤 menuType!=B 即可，不再单独缓存 routes） */
+	String RBAC_ROLE_MENUS = "rbac:role:menus:";
+	/** @deprecated 历史 key，仅用于失效清理，勿再写入 */
+	String RBAC_ROLE_ROUTE_MENUS = "rbac:role:routes:";
+	/** 角色自定义数据权限部门 ID 列表 */
+	String RBAC_ROLE_DEPTS = "rbac:role:depts:";
+	/** 前台博客导航（文章分类树） */
+	String BLOG_NAV_MENU = "blog:nav:category:tree";
+	/** 权限版本（变更时自增，便于会话侧感知） */
+	String RBAC_PERM_VER = "rbac:perm:ver";
     int QRCODE_SIZE = 440;
 	int COOKIE_MAX_AGE = 24 * 60 * 60;
     int DEL_FLAG_0 = 0;
