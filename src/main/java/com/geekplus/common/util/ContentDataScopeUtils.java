@@ -1,7 +1,7 @@
 package com.geekplus.common.util;
 
 import com.geekplus.common.domain.LoginUser;
-import com.geekplus.webapp.system.entity.SysUser;
+import com.geekplus.common.security.AdminAuthUtils;
 import com.geekplus.webapp.system.vo.SysRoleVO;
 import org.apache.commons.lang3.StringUtils;
 
@@ -10,10 +10,14 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 内容侧数据范围：管理员看全站，普通用户仅本人。
+ * 内容侧（文章/评论）数据范围：站点管理员看全站，普通用户仅本人。
+ * <p>
+ * 与系统行级 {@link AdminAuthUtils} 区分：此处额外识别 blog_admin 等运营角色；
+ * 系统数据权限豁免账号一并视为内容管理员。
  */
 public final class ContentDataScopeUtils {
 
+    /** 博客/站点运营角色字符（不区分大小写） */
     private static final List<String> ADMIN_ROLE_KEYS = Arrays.asList(
             "admin", "blog_admin", "site_admin", "website_admin",
             "blogAdmin", "siteAdmin", "webManage", "development"
@@ -25,10 +29,12 @@ public final class ContentDataScopeUtils {
         if (user == null) {
             return false;
         }
-        if (SysUser.isAdmin(user.getUserId())) {
+        // 系统超管 / 全部数据权限角色：内容侧同样放行
+        if (AdminAuthUtils.isDataScopeBypass(user)) {
             return true;
         }
         Integer userType = user.getUserType();
+        // 1=系统管理员 2=站点/内容管理员（与登录约定一致）
         if (userType != null && (userType == 1 || userType == 2)) {
             return true;
         }

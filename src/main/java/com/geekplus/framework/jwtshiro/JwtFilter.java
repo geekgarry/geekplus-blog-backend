@@ -108,27 +108,31 @@ public class JwtFilter extends BasicHttpAuthenticationFilter {
     @Override
     protected boolean isLoginAttempt(ServletRequest request, ServletResponse response) {
         HttpServletRequest httpRequest = WebUtils.toHttp(request);
-
-        String authorization = httpRequest.getHeader(Constant.USER_HEADER_TOKEN);
-        //同时支持cookie，设置cookie的httpOnly为true
-//        if(StringUtils.isEmpty(authorization)){
-//            authorization = CookieUtil.getCookieValue(httpRequest, Constant.USER_HEADER_TOKEN);
-//        }
+        String authorization = resolveToken(httpRequest);
         return StringUtils.isNoneBlank(authorization);
     }
 
     @Override
     protected boolean executeLogin(ServletRequest request, ServletResponse response) {
         HttpServletRequest httpRequest = WebUtils.toHttp(request);
-        String token = httpRequest.getHeader(Constant.USER_HEADER_TOKEN);
-        //同时支持cookie，设置cookie的httpOnly为true
-//        if(StringUtils.isEmpty(token)){
-//            token = CookieUtil.getCookieValue(httpRequest, Constant.USER_HEADER_TOKEN);
-//        }
+        String token = resolveToken(httpRequest);
         JwtToken jwtToken = new JwtToken(token);
-        //提交给realm进行登录，如果错误会怕熬出异常并被捕获，如果没有抛出异常则返回true
         getSubject(request, response).login(jwtToken);
         return true;
+    }
+
+    /**
+     * Header 优先；SSE EventSource 无法自定义 Header，兼容 query：Plus-Token / token
+     */
+    private String resolveToken(HttpServletRequest httpRequest) {
+        String authorization = httpRequest.getHeader(Constant.USER_HEADER_TOKEN);
+        if (StringUtils.isEmpty(authorization)) {
+            authorization = httpRequest.getParameter(Constant.USER_HEADER_TOKEN);
+        }
+        if (StringUtils.isEmpty(authorization)) {
+            authorization = httpRequest.getParameter("token");
+        }
+        return authorization;
     }
 
     @Override

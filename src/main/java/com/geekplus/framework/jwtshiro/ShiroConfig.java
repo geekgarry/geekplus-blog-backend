@@ -111,10 +111,11 @@ public class ShiroConfig {
         map.put("/covid/**","anon");
         map.put("/ai/**","anon");
         map.put("/geekplusapp/**","anon");
+        // WebSocket / STOMP：浏览器无法自定义 Header，须带 query Plus-Token，仍走 jwt（见 JwtFilter.resolveToken）
+        // 切勿改回无鉴权 anon，除非 OnOpen 自行验 Token
         // map.put("/websocket/**","anon");
-        // map.put("/chatAIWS/**","anon");
-        // map.put("/chatAIApp/**","anon");
-        // map.put("/chatAITopic/**","anon");
+        // SSE 订阅同样依赖 query Token + jwt
+        // map.put("/sse/**","anon");
         map.put("/profile/**","invalidRequest,signedAnon");
         map.put("/common/getQRCode**","anon");
         map.put("/common/download**","anon");

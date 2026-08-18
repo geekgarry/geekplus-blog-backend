@@ -16,12 +16,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/chatAITopic");
-        config.setApplicationDestinationPrefixes("/chatAIApp");
+        config.enableSimpleBroker("/chatWsTopic");
+        config.setApplicationDestinationPrefixes("/chatWsApp");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/chatAIWS").setAllowedOriginPatterns("*").withSockJS();
+        registry.addEndpoint("/chatWebsocket").setAllowedOriginPatterns("*").withSockJS();
     }
 }

@@ -10,9 +10,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 功能：系统用户表 对象:sys_user
@@ -20,7 +18,7 @@ import java.util.Map;
  * @author CodeGenerator
  * @date 2023/06/18
  */
-public class SysUser implements Serializable
+public class SysUser extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 
@@ -151,12 +149,6 @@ public class SysUser implements Serializable
 	 * 展开后的部门 ID 列表；非空时 Mapper 使用 dept_id IN (...)
 	 */
 	private List<Long> deptIdList;
-
-	/**
-	 * 请求/切面扩展参数（如 DataScopeAspect 写入的 dataScope SQL 片段）
-	 */
-	@JsonIgnore
-	private Map<String, Object> params;
 
 	public boolean isAdmin()
 	{
@@ -454,17 +446,6 @@ public class SysUser implements Serializable
 
 	public void setDeptIdList(List<Long> deptIdList) {
 		this.deptIdList = deptIdList;
-	}
-
-	public Map<String, Object> getParams() {
-		if (params == null) {
-			params = new HashMap<>();
-		}
-		return params;
-	}
-
-	public void setParams(Map<String, Object> params) {
-		this.params = params;
 	}
 
 	@Override

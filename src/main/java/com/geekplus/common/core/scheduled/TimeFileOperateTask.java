@@ -41,9 +41,9 @@ public class TimeFileOperateTask {
 
     //删除服务器文件的方法
     private void deleteFile() {
-        long currentTimeMillis =System.currentTimeMillis();//表示直接删除当前时间之前的
+        long currentTimeMillis =System.currentTimeMillis();//表示直接删除当前时间之前的临时访客的聊天文件
         //currentTimeMillis - (7 * 24 * 60 * 60 * 1000);//表示删除七天前的
-        File file = new File(appConfig.getUploadPath()+File.separator+"chatData");
+        File file = new File(appConfig.getUploadPath()+File.separator+"guest");
         try {
             //调用FileUtils的方法 删除服务器文件
             FileUtils.deleteFilesOlderThan(file,currentTimeMillis);

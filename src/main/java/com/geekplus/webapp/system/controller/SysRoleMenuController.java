@@ -135,6 +135,20 @@ public class SysRoleMenuController extends BaseController {
     @Log(title = "批量删除角色菜单关联", businessType = BusinessType.DELETE)
     @PostMapping("/removeRoleMenuList")
     public Result removeRoleMenuList(@RequestBody List<SysRoleMenu> list) {
+        return doBatchDeleteRoleMenu(list);
+    }
+
+    /**
+     * 与前端 {@code batchDeleteRoleMenus} 对齐：PUT /sys/roleMenu/batchDeleteRoleMenu
+     * （历史接口名 removeRoleMenuList 仍保留 POST）
+     */
+    @Log(title = "批量删除角色菜单关联", businessType = BusinessType.DELETE)
+    @PutMapping("/batchDeleteRoleMenu")
+    public Result batchDeleteRoleMenu(@RequestBody List<SysRoleMenu> list) {
+        return doBatchDeleteRoleMenu(list);
+    }
+
+    private Result doBatchDeleteRoleMenu(List<SysRoleMenu> list) {
         if (sysRoleMenuService.batchDeleteSysRoleMenu(list) > 0) {
             evictByRoleMenus(list);
             return Result.success();

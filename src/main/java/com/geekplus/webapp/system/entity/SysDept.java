@@ -14,7 +14,7 @@ import java.util.List;
  * @author CodeGenerator
  * @date 2023/07/17
  */
-public class SysDept implements Serializable
+public class SysDept extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
 

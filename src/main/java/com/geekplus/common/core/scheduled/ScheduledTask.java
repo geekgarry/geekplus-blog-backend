@@ -11,9 +11,9 @@ import javax.annotation.Resource;
 
 /**
  * author     : geekplus
- * description: 定时任务
+ * description: 定时任务，暂时没有使用，注释掉，避免影响其他功能
  */
-@Configuration
+// @Component
 public class ScheduledTask {
     @Resource
     SysNoticeService sysNoticeService;
@@ -22,6 +22,7 @@ public class ScheduledTask {
      */
     //10秒传递一次
     //@Scheduled(cron="*/10 * * * * ? ")
+    //每天凌晨1点、9点、17点执行一次
     @Scheduled(cron = "0 0 1,9,17 * * ?")
     public void JqcaseSearch() {
         try {

@@ -299,15 +299,18 @@ public class FileUploadUtils
         return extension;
     }
 
-    //base64文件上传到
-    public static String base64StrToFile(String baseStr) {
+    //base64文件上传到，默认上传到chatData文件夹
+    public static String base64StrToFile(String folderName, String baseStr) {
+        if (StringUtils.isEmpty(folderName)) {
+            folderName = "chatData";
+        }
         String path = WebAppConfig.getUploadPath();
         //去除base64前缀
         String newStr = Base64Util.getBase64Str(baseStr);
         String fExtension="."+ MimeTypeEnum.getExtensionByMimeType(Base64Util.getFileMimeType(baseStr));
         // 图片名+图片后缀,prefix.suffix
         String fileName = DateTimeUtils.getCurrentTimeStr()+"-"+UUID.randomUUID().toString()+fExtension;
-        String imgFilePath = path.concat(File.separator+"chatData"+File.separator).concat(DateUtil.datePath()+File.separator).concat(fileName);
+        String imgFilePath = path.concat(File.separator+folderName+File.separator).concat(DateUtil.datePath()+File.separator).concat(fileName);
         if (baseStr == null)
             return "上传失败";
         //BASE64Decoder decoder = new BASE64Decoder();

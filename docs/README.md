@@ -16,6 +16,13 @@
 | **1** | [01-全栈技术架构与前后端协作.md](./01-全栈技术架构与前后端协作.md) | 前后端分层、登录/菜单契约、端到端时序与协作优化清单 |
 | **2** | [02-可插拔鉴权与SpringSecurity接入方案.md](./02-可插拔鉴权与SpringSecurity接入方案.md) | **保留 Shiro+JWT，同时可切换 Spring Security** 的端口与适配器方案 |
 | **3** | [03-Caffeine与Redis双重缓存与会话瘦身.md](./03-Caffeine与Redis双重缓存与会话瘦身.md) | 会话瘦身 + Caffeine(L1)/Redis(L2) 角色级 RBAC 缓存 |
+| **4** | [04-SSE推送与在线沟通MVP.md](./04-SSE推送与在线沟通MVP.md) | SSE 预警推送 + 在线聊天/WebRTC 信令 MVP（与 WS 并存） |
+| **5** | [05-SSL-PEM证书热更新.md](./05-SSL-PEM证书热更新.md) | CER+KEY 直导、路径只配一处、热更新与「为何曾双路径」说明 |
+| **6** | [06-实时推送方案选型与WebSocket改造.md](./06-实时推送方案选型与WebSocket改造.md) | 中后台推送选型、复用旧 WS 做 IM、握手失败根因与改造 |
+| **7** | [07-数据权限使用说明.md](./07-数据权限使用说明.md) | 角色 data_scope 配置、用户/部门接入、新业务怎么挂 `@DataScope` |
+| **8** | [08-SpringSecurity下的数据权限与Jeecg对照.md](./08-SpringSecurity下的数据权限与Jeecg对照.md) | 切 Security 后数据权限怎么做；对照 / 迁移阶段 |
+| **9** | [09-多租户SaaS改造技术方案.md](./09-多租户SaaS改造技术方案.md) | 后期共享库+tenant_id 多租户；与 data_scope/缓存/鉴权正交的分阶段规划 |
+| **10** | [10-SpringAOP切面为何生效与starter-aop.md](./10-SpringAOP切面为何生效与starter-aop.md) | 为何日志/限流/防重能织入；aspectjweaver 与 starter-aop；DataScope 问题根因对照 |
 
 ---
 

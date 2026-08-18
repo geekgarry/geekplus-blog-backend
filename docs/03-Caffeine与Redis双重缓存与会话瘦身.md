@@ -140,8 +140,11 @@ info.addStringPermissions(perms);
 
 - 身份：`userId` / `username` / `nickname` / `avatar` / `userType`  
 - 角色摘要：`List<SysRoleVO>`（`roleId`、`roleKey`、`roleName`、`dataScope` 即可）  
+- 部门：`sysDept` + 顶层 `deptId`（「本部门」数据权限兜底）  
 - 会话元数据：`loginIp`、`loginLocation`、`browser`、`os`、`loginTime`  
 - **显式置空**：`sysMenuList = null`（大权限集）
+
+> **数据权限陷阱（已修）**：`DataScopeAspect` 读 RBAC 缓存的 `data_scope`。旧版曾用 `role_key=admin` / `userType=1` 做行级豁免，导致改「管理员」角色为「本部门」后仍看全库。现 **仅 `userId=1` 跳过行过滤**；「全部」只认缓存里的 `data_scope=1`。`refreshUserAuth` 会失效角色缓存并回写会话。
 
 部门对象若很大，也可只留 `deptId` + 名称等展示字段。
 

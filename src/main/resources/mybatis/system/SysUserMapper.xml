@@ -6,7 +6,8 @@
 
 <mapper namespace="com.geekplus.webapp.system.mapper.SysUserMapper">
     <resultMap id="BaseResultMap" type="com.geekplus.webapp.system.entity.SysUser">
-            <result property="userId" column="user_id" jdbcType="INTEGER" />
+            <!-- id 必须声明，否则一对多角色时 data_scope 等集合无法正确归并 -->
+            <id property="userId" column="user_id" jdbcType="BIGINT" />
             <result property="deptId" column="dept_id" jdbcType="INTEGER" />
             <result property="username" column="username" jdbcType="VARCHAR" />
             <result property="nickname" column="nickname" jdbcType="VARCHAR" />
@@ -75,7 +76,7 @@
     </resultMap>
 
     <resultMap id="roleResultMap" type="com.geekplus.webapp.system.entity.SysRole" >
-        <result property="roleId" column="role_id" jdbcType="INTEGER" />
+        <id property="roleId" column="role_id" jdbcType="INTEGER" />
         <result property="roleName" column="role_name" jdbcType="VARCHAR" />
         <result column="role_key" jdbcType="VARCHAR" property="roleKey" />
         <!-- 登录/详情需带上数据范围，供 DataScopeAspect 使用 -->
@@ -186,10 +187,8 @@
             <if test="remark !=null">
                 AND remark = #{remark}
             </if>
-            <!-- 数据权限过滤（空字符串时不拼接） -->
-            <if test="params != null and params.dataScope != null and params.dataScope != ''">
-                ${params.dataScope}
-            </if>
+            <!-- 数据范围过滤（切面写入 params.dataScope，空串无影响） -->
+            ${params.dataScope}
         </where>
     </select>
 
@@ -323,9 +322,8 @@
             <if test="remark !=null">
                 AND su.remark = #{remark}
             </if>
-            <if test="params != null and params.dataScope != null and params.dataScope != ''">
-                ${params.dataScope}
-            </if>
+            <!-- 数据范围过滤 -->
+            ${params.dataScope}
         </where>
     </select>
 

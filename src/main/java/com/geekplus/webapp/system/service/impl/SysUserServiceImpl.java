@@ -1,6 +1,5 @@
 package com.geekplus.webapp.system.service.impl;
 
-import com.geekplus.common.annotation.DataScope;
 import com.geekplus.common.core.text.Convert;
 import com.geekplus.framework.web.exception.BusinessException;
 import com.geekplus.common.util.encrypt.EncryptUtil;
@@ -132,11 +131,9 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-    * 查询全部
-    * baseSelectVo 无表别名，故 DataScope 不传 deptAlias，过滤片段为 AND dept_id IN (...)
+    * 查询全部（无表别名；DataScope 由 Controller 写入 params）
     */
     @Override
-    @DataScope
     public List<SysUser> selectSysUserList(SysUser sysUser){
         expandDeptIdFilter(sysUser);
         return sysUserMapper.selectSysUserList(sysUser);
@@ -199,10 +196,9 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
+    * 联合查询用户列表（Mapper 使用表别名 su）。
     */
     @Override
-    @DataScope(deptAlias = "su", userAlias = "su")
     public List<SysUser> selectUnionSysUserList(SysUser sysUser){
         expandDeptIdFilter(sysUser);
         return sysUserMapper.selectUnionSysUserList(sysUser);

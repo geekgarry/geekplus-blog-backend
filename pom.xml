@@ -378,12 +378,17 @@
             <artifactId>oshi-core</artifactId>
             <version>6.1.6</version>
         </dependency>
-        <!--aop切面-->
+        <!-- aop：显式启用 Spring AOP（@Aspect）。aspectjweaver 一般由本 starter 传递，不必再手写一份；说明见 docs/10 -->
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <!-- 可选：仅当需要锁定 AspectJ 版本时保留；与 starter-aop 重复时可删 -->
+        <!-- <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjweaver</artifactId>
             <version>1.9.7</version>
-        </dependency>
+        </dependency> -->
         <!-- 获取浏览器信息 -->
         <dependency>
             <groupId>eu.bitwalker</groupId>

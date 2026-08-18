@@ -21,8 +21,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * RBAC 公共缓存：按角色只存一份 menus（含按钮）+ perms + depts。
- * 路由菜单由 menus 过滤 menuType!=B 得到，不再单独缓存 routes。
+ * RBAC 公共缓存：按角色只存一份 menus（含按钮）+ perms + depts + data_scope。
+ * <p>
+ * 数据权限切面应通过 {@link #getRoleDataScope(Long)} / {@link #getRoleDeptIds(Long)} 取值，
+ * 勿依赖 LoginUser 会话里可能过期的 role.dataScope。改角色权限后调用 {@link #evictRole(Long)}。
  */
 @Slf4j
 @Service
@@ -72,6 +74,7 @@ public class RbacCacheService {
                 getRolePerms(role.getRoleId());
                 getRoleMenus(role.getRoleId());
                 getRoleDeptIds(role.getRoleId());
+                getRoleDataScope(role.getRoleId());
                 n++;
             }
             log.info("RBAC 缓存预热完成，角色数={}", n);
@@ -110,6 +113,24 @@ public class RbacCacheService {
             return ids != null ? new ArrayList<>(ids) : new ArrayList<Long>();
         });
         return cached != null ? cached : Collections.emptyList();
+    }
+
+    /**
+     * 角色数据范围（1~5）。切面应读此处而非 LoginUser 里可能过期的 dataScope。
+     */
+    public String getRoleDataScope(Long roleId) {
+        if (roleId == null) {
+            return "";
+        }
+        String key = Constant.RBAC_ROLE_DATASCOPE + roleId;
+        String cached = twoLevelCache.get(key, () -> {
+            SysRole role = sysRoleMapper.selectSysRoleById(roleId);
+            if (role == null || role.getDataScope() == null) {
+                return "";
+            }
+            return String.valueOf(role.getDataScope()).trim();
+        });
+        return cached != null ? cached : "";
     }
 
     public Set<String> resolvePerms(List<SysRoleVO> roles) {
@@ -153,24 +174,58 @@ public class RbacCacheService {
     }
 
     public void evictRole(Long roleId) {
-        if (roleId == null) {
+        if (evictRoleKeys(roleId)) {
+            bumpPermVer();
+        }
+    }
+
+    /**
+     * 批量失效角色缓存；{@code permVer} 只递增一次，避免循环 evict 时版本号抖动。
+     */
+    public void evictRoles(Collection<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
             return;
+        }
+        boolean any = false;
+        for (Long id : roleIds) {
+            if (evictRoleKeys(id)) {
+                any = true;
+            }
+        }
+        if (any) {
+            bumpPermVer();
+        }
+    }
+
+    /**
+     * 按库回填会话角色上的 dataScope（不预热 menus/perms，由后续 resolve 懒加载）。
+     */
+    public void syncRoleDataScopes(List<SysRoleVO> roles) {
+        if (roles == null || roles.isEmpty()) {
+            return;
+        }
+        for (SysRoleVO role : roles) {
+            if (role == null || role.getRoleId() == null) {
+                continue;
+            }
+            String scope = getRoleDataScope(role.getRoleId());
+            if (StringUtils.isNotEmpty(scope)) {
+                role.setDataScope(scope);
+            }
+        }
+    }
+
+    private boolean evictRoleKeys(Long roleId) {
+        if (roleId == null) {
+            return false;
         }
         twoLevelCache.evict(Constant.RBAC_ROLE_PERMS + roleId);
         twoLevelCache.evict(Constant.RBAC_ROLE_MENUS + roleId);
         twoLevelCache.evict(Constant.RBAC_ROLE_DEPTS + roleId);
+        twoLevelCache.evict(Constant.RBAC_ROLE_DATASCOPE + roleId);
         // 兼容清理历史 routes key（若线上曾写入）
         twoLevelCache.evict(Constant.RBAC_ROLE_ROUTE_MENUS + roleId);
-        bumpPermVer();
-    }
-
-    public void evictRoles(Collection<Long> roleIds) {
-        if (roleIds == null) {
-            return;
-        }
-        for (Long id : roleIds) {
-            evictRole(id);
-        }
+        return true;
     }
 
     public void evictAllRoles() {
@@ -179,11 +234,7 @@ public class RbacCacheService {
             if (roles != null) {
                 for (SysRole role : roles) {
                     if (role != null && role.getRoleId() != null) {
-                        Long id = role.getRoleId();
-                        twoLevelCache.evict(Constant.RBAC_ROLE_PERMS + id);
-                        twoLevelCache.evict(Constant.RBAC_ROLE_MENUS + id);
-                        twoLevelCache.evict(Constant.RBAC_ROLE_DEPTS + id);
-                        twoLevelCache.evict(Constant.RBAC_ROLE_ROUTE_MENUS + id);
+                        evictRoleKeys(role.getRoleId());
                     }
                 }
             }

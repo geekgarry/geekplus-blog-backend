@@ -51,7 +51,7 @@ public interface SysDeptService {
     public Integer batchUpdateSysDeptList(Long[] deptIds);
 
     /**
-     * 查询全部
+     * 查询全部（数据权限由 Controller {@code @DataScope} 写入 params）
      */
     public List<SysDept> selectSysDeptList(SysDept sysDept);
 

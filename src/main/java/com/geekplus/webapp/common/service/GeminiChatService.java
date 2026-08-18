@@ -288,7 +288,12 @@ public class GeminiChatService {
             //&&当第一个表达式的值为false的时候，则不再计算第二个表达式,&则怎么样都执行
             //||当第一个表达式的值为true，就不再计算后面的表达式，｜则也会都执行
             if(FileUtils.isStringType(chatPrompt.getMediaData()) && Base64Util.isBase64(chatPrompt.getMediaData().toString())) {
-                fileUrl = FileUploadUtils.base64StrToFile(chatPrompt.getMediaData().toString());
+                // 如果是登录用户，则上传到chatData文件夹，如果是游客，则上传到guest文件夹
+                if(StringUtils.isEmpty(chatPrompt.getUsername()) || chatPrompt.getUsername().contains("guest")) {
+                    fileUrl = FileUploadUtils.base64StrToFile("guest", chatPrompt.getMediaData().toString());
+                }else {
+                    fileUrl = FileUploadUtils.base64StrToFile("chatData", chatPrompt.getMediaData().toString());
+                }
             }
             //chatPrompt.setMediaData(Base64Util.getBase64Str(chatPrompt.getMediaData().toString()));
         }

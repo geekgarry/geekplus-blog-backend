@@ -15,11 +15,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * author     : geekplus
- * description: websocket服务
+ * 统一实时通道：在线人数 / 心跳 / 管理端预警 / IM 文本推送 / WebRTC 信令。
+ * 同一 {@code /websocket/{sid}} 即可服务多种业务；业务报文用 JSON {@code type} 区分。
+ * 握手鉴权：走 Shiro jwt，Token 放 query（浏览器 WebSocket 无法自定义 Header），与 SSE 一致。
  */
 @Slf4j
-@ServerEndpoint(value = "/websocket/{sid}", subprotocols = {"protocol"})
+@ServerEndpoint(value = "/websocket/{sid}")
 @Component
 public class WebSocketServer {
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
@@ -150,29 +151,27 @@ public class WebSocketServer {
      */
     @OnMessage(maxMessageSize = 1048576)
     public void onMessage(String message, Session session) {
-        log.info("收到来自窗口" + sid + "的信息:" + message);
-        //群发消息
-//        for (WebSocketServer item : webSocketSet) {
-//            item.sendMessage(message);
-//        }
+        log.debug("WS from {} : {}", sid, message);
         Map jsonObject = JsonObjectUtil.jsonToMap(message);
-        String textMessage = jsonObject.get("message").toString();
-        String msgType = jsonObject.get("type").toString();
-        String fromUser = jsonObject.get("fromUser").toString();
-        String toUser = jsonObject.get("toUser").toString();
-        //如果不是发给所有，那么就发给某一个人
-        //messageType 1代表上线 2代表下线 3代表在线名单  4代表普通消息
-        Map<String,Object> map1 = Maps.newHashMap();
-        map1.put("type",msgType);
-        map1.put("message",textMessage);
-        map1.put("fromUser",toUser);
-        if(msgType.equals("heartBeat")){
-            //map1.put("toUser",toUser);
-            sendInfo(JsonObjectUtil.objectToJson(map1),toUser);
-        }else{
-            map1.put("toUser","all");
-            sendMessageAll(JsonObjectUtil.objectToJson(map1));
+        if (jsonObject == null || jsonObject.isEmpty()) {
+            return;
         }
+        Object typeObj = jsonObject.get("type");
+        if (typeObj == null) {
+            return;
+        }
+        String msgType = String.valueOf(typeObj);
+        // 心跳：原样回给当前用户，保持连接与在线态
+        if ("heartBeat".equals(msgType)) {
+            Map<String, Object> pong = Maps.newHashMap();
+            pong.put("type", "heartBeat");
+            pong.put("message", "heartBeat");
+            pong.put("ts", System.currentTimeMillis());
+            sendInfo(JsonObjectUtil.objectToJson(pong), this.sid);
+            return;
+        }
+        // 其余客户端上行：IM 文本/信令应走 HTTP API + RealtimePushBroker，避免绕过鉴权与落库
+        log.debug("ignore client uplink type={} from={}", msgType, sid);
     }
 
     /**
@@ -181,45 +180,47 @@ public class WebSocketServer {
      */
     @OnError
     public void onError(Session session, Throwable error) {
-        log.error("发生错误");
-        error.printStackTrace();
+        // 客户端断网 / Connection reset 很常见，降级为 warn，避免刷 ERROR
+        String msg = error == null ? "unknown" : error.toString();
+        if (msg.contains("Connection reset") || msg.contains("Broken pipe") || msg.contains("EOF")) {
+            log.warn("WS 连接异常 sid={}: {}", sid, msg);
+        } else {
+            log.warn("WS onError sid={}: {}", sid, msg);
+        }
     }
 
     /**
      * 群发自定义消息
      */
     public static void sendInfo(Object message, String sid) {
-        log.info("推送消息到窗口" + sid + "，推送内容:" + message);
-
+        if (message == null) {
+            return;
+        }
+        String text = message.toString();
         for (WebSocketServer item : socketClients.values()) {
-            //这里可以设定只推送给这个sid的，为null则全部推送
             if (sid == null) {
-                item.sendMessageAll(message);
-            } else if (item.sid.equals(sid)) {
-                item.sendMessage(item.session,message);
+                sendMessage(item.session, text);
+            } else if (sid.equals(item.sid)) {
+                sendMessage(item.session, text);
             }
         }
     }
 
-    //*****************************通过Session池类发送消息**********************************
     /**
-     * 单用户推送
-     * 实现服务器主动推送
+     * 单用户推送（吞掉异常，避免信令 HTTP 被连带 500）
      */
     public static void sendMessage(Session session, Object message) {
-        log.info("推送消息" + "，推送内容:" + message);
-        if (session == null) {
+        if (session == null || message == null) {
             return;
         }
-        final RemoteEndpoint.Basic basic = session.getBasicRemote();
-        if (basic == null)
-        {
+        if (!session.isOpen()) {
             return;
         }
         try {
-            basic.sendText(message.toString());
-        } catch (IOException e) {
-            System.out.println("sendMessage IOException "+ e);
+            // 异步发送，降低 ICE 风暴时阻塞/异常概率
+            session.getAsyncRemote().sendText(message.toString());
+        } catch (Exception e) {
+            log.warn("sendMessage fail: {}", e.toString());
         }
     }
 
@@ -227,10 +228,11 @@ public class WebSocketServer {
      * 全用户推送
      */
     public static void sendMessageAll(Object message) {
-//        for (WebSocketServer item : socketClients.values()) {
-//            item.session.getAsyncRemote().sendText(message.toString());
-//        }
-        socketClients.forEach((sid,socketItem) -> sendMessage(socketItem.session, message));
+        if (message == null) {
+            return;
+        }
+        String text = message.toString();
+        socketClients.forEach((id, socketItem) -> sendMessage(socketItem.session, text));
     }
 
     public static synchronized int getOnlineCount() {

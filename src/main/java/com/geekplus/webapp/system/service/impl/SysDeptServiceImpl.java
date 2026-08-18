@@ -154,21 +154,21 @@ public class SysDeptServiceImpl implements SysDeptService {
     }
 
     /**
-     * 查询全部
+     * 查询全部（按角色 data_scope 过滤可见部门；条件由 Controller @DataScope 写入）
      */
     public List<SysDept> selectSysDeptList(SysDept sysDept){
         return sysDeptMapper.selectSysDeptList(sysDept);
     }
 
     /**
-     * 部门选择树
+     * 部门选择树（全量，可见范围由 Controller 用 DataPermissionHelper 裁剪以保留祖先路径）
      */
     public List<SysDept> getSysDeptTreeList(){
         return getParentMenuList(sysDeptMapper.selectSysDeptTreeList());
     }
 
     /**
-     * 查询全部,用于联合查询，在此基础做自己的定制改动
+     * 联合查询
      */
     public List<SysDept> selectUnionSysDeptList(SysDept sysDept){
         return sysDeptMapper.selectUnionSysDeptList(sysDept);

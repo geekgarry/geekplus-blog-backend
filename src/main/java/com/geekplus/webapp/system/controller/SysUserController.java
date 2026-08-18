@@ -1,12 +1,14 @@
 package com.geekplus.webapp.system.controller;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.geekplus.common.annotation.DataScope;
 import com.geekplus.common.annotation.Log;
 import com.geekplus.common.annotation.RepeatSubmit;
 import com.geekplus.common.config.WebAppConfig;
 import com.geekplus.common.constant.Constant;
 import com.geekplus.common.constant.HttpStatus;
 import com.geekplus.common.core.controller.BaseController;
+import com.geekplus.common.datascope.DataPermissionHelper;
 import com.geekplus.common.domain.LoginUser;
 import com.geekplus.common.domain.Result;
 import com.geekplus.common.enums.BusinessType;
@@ -53,6 +55,8 @@ public class SysUserController extends BaseController {
     @Resource
     private SysRoleService sysRoleService;
     @Resource
+    private DataPermissionHelper dataPermissionHelper;
+    @Resource
     private SysUserRoleService sysUserRoleService;
     @Resource
     private SysUserTokenService sysUserTokenService;
@@ -71,6 +75,11 @@ public class SysUserController extends BaseController {
     @PostMapping("/add")
     @RepeatSubmit
     public Result add(@RequestBody SysUser sysUser) {
+        // 所选部门须在当前登录者数据权限可见范围内
+        Result denyDept = assertCanAssignDept(sysUser == null ? null : sysUser.getDeptId());
+        if (denyDept != null) {
+            return denyDept;
+        }
         return toResult(sysUserService.insertSysUser(sysUser));
     }
 
@@ -79,6 +88,10 @@ public class SysUserController extends BaseController {
     @PostMapping("/addEncodePwd")
     @RepeatSubmit
     public Result addEncodePwd(@RequestBody SysUser sysUser) {
+        Result denyDept = assertCanAssignDept(sysUser == null ? null : sysUser.getDeptId());
+        if (denyDept != null) {
+            return denyDept;
+        }
         Result result=toResult(sysUserService.insertSysUserEnCodePwd(sysUser));
         result.put("userId",sysUser.getUserId());
         return result;
@@ -92,6 +105,10 @@ public class SysUserController extends BaseController {
     @Log(title = "删除用户",businessType = BusinessType.DELETE,operatorType = OperatorType.MANAGE)
     @GetMapping("/delete")
     public Result remove(@RequestParam Long userId) {
+        Result deny = assertCanAccessUser(userId);
+        if (deny != null) {
+            return deny;
+        }
         if(sysUserService.deleteSysUserById(userId)>0){
             return toResult(sysUserRoleService.deleteSysUserRoleById(userId));
         }else {
@@ -106,6 +123,10 @@ public class SysUserController extends BaseController {
     @Log(title = "逻辑删除用户",businessType = BusinessType.DELETE,operatorType = OperatorType.MANAGE)
     @GetMapping("/logical_delete")
     public Result modifyDelFlagById(@RequestParam Long userId) {
+        Result deny = assertCanAccessUser(userId);
+        if (deny != null) {
+            return deny;
+        }
         return toResult(sysUserService.updateDelFlagById(userId));
     }
 
@@ -117,6 +138,14 @@ public class SysUserController extends BaseController {
     @Log(title = "批量删除用户",businessType = BusinessType.DELETE,operatorType = OperatorType.MANAGE)
     @DeleteMapping("/{userIds}")
     public Result remove(@PathVariable Long[] userIds) {
+        if (userIds != null) {
+            for (Long id : userIds) {
+                Result deny = assertCanAccessUser(id);
+                if (deny != null) {
+                    return deny;
+                }
+            }
+        }
         if(sysUserService.deleteSysUserByIds(userIds)>0){
             return toResult(sysUserRoleService.deleteSysUserRoleByIds(userIds));
         }else {
@@ -128,6 +157,14 @@ public class SysUserController extends BaseController {
     @Log(title = "批量逻辑删除用户",businessType = BusinessType.DELETE,operatorType = OperatorType.MANAGE)
     @DeleteMapping("/logical/{userIds}")
     public Result modifyDelFlagByIds(@PathVariable Long[] userIds) {
+        if (userIds != null) {
+            for (Long id : userIds) {
+                Result deny = assertCanAccessUser(id);
+                if (deny != null) {
+                    return deny;
+                }
+            }
+        }
         return toResult(sysUserService.updateDelFlagByIds(userIds));
     }
 
@@ -138,6 +175,17 @@ public class SysUserController extends BaseController {
     @Log(title = "更新用户信息",businessType = BusinessType.UPDATE,operatorType = OperatorType.MANAGE)
     @PutMapping
     public Result edit(@RequestBody SysUser sysUser) {
+        if (sysUser.getUserId() != null) {
+            Result deny = assertCanAccessUser(sysUser.getUserId());
+            if (deny != null) {
+                return deny;
+            }
+        }
+        // 改部门时同样校验目标部门是否可见
+        Result denyDept = assertCanAssignDept(sysUser.getDeptId());
+        if (denyDept != null) {
+            return denyDept;
+        }
         return toResult(sysUserService.updateSysUser(sysUser));
     }
 
@@ -185,6 +233,12 @@ public class SysUserController extends BaseController {
     @Log(title = "重置用户密码",businessType = BusinessType.UPDATE,operatorType = OperatorType.MANAGE)
     @GetMapping("/resetUserPwd")
     public Result resetUserPwd(SysUser sysUser) {
+        if (sysUser != null && sysUser.getUserId() != null) {
+            Result deny = assertCanAccessUser(sysUser.getUserId());
+            if (deny != null) {
+                return deny;
+            }
+        }
         return toResult(sysUserService.updateSysUserPwd(sysUser));
     }
 
@@ -215,6 +269,10 @@ public class SysUserController extends BaseController {
     @RequiresPermissions("system:user:detail")
     @GetMapping("/detail")
     public Result detail(@RequestParam Long userId) {
+        Result deny = assertCanAccessUser(userId);
+        if (deny != null) {
+            return deny;
+        }
         SysUser sysUser = sysUserService.selectSysUserById(userId);
         List<SysRole> sysRoles=sysRoleService.getRolesByUserId(userId.toString());
         sysUser.setSysRoleList(sysRoles);
@@ -235,7 +293,7 @@ public class SysUserController extends BaseController {
             //}
             String userName= jwtUtil.getUserNameFromToken(token);
             sysUser = sysUserService.getSysUserInfoBy(userName);
-            sysUser.setAvatar(signer.signedUrl(sysUser.getAvatar()));
+            //sysUser.setAvatar(signer.signedUrl(sysUser.getAvatar()));
             //SysUser sysUser = sysUserService.selectSysUserById(userId);
 
         }
@@ -265,10 +323,13 @@ public class SysUserController extends BaseController {
         if (!file.isEmpty())
         {
             LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
+            String avatar = null;
             if(StringUtils.isEmpty(fileFolder)) {
-                fileFolder = DateUtil.datePath();
+                avatar = FileUploadUtils.upload(appConfig.getAvatarPath(), file);
+            }else {
+                avatar = FileUploadUtils.upload(appConfig.getAvatarPath() + File.separator + fileFolder, file);
             }
-            String avatar = FileUploadUtils.upload(appConfig.getAvatarPath() + File.separator + fileFolder, file);
+
             if (sysUserService.updateUserAvatar(loginUser.getUsername(), avatar))
             {
                 Result ajax = Result.success();
@@ -295,19 +356,18 @@ public class SysUserController extends BaseController {
     }
 
     /**
-    * 条件查询所有 系统用户表
+    * 条件查询所有 系统用户表（{@code @DataScope} 挂在 Controller，对齐系统，保证切面必织入）
     */
     @RequiresPermissions("system:user:listAll")
+    @DataScope
     @GetMapping("/listAll")
     public PageDataInfo listAll(SysUser sysUser) {
-        //PageHelper.startPage(page, size);
         List<SysUser> list = sysUserService.selectSysUserList(sysUser);
         PageDataInfo rspData = new PageDataInfo();
         rspData.setCode(HttpStatus.SUCCESS);
         rspData.setMsg("查询成功");
         rspData.setRows(list);
         rspData.setTotal(new PageInfo(list).getTotal());
-        //PageInfo pageInfo = new PageInfo(list);
         return rspData;
     }
 
@@ -315,6 +375,7 @@ public class SysUserController extends BaseController {
     * 条件查询所有 系统用户表
     */
     @RequiresPermissions("system:user:list")
+    @DataScope
     @GetMapping("/list")
     public PageDataInfo list(SysUser sysUser) {
         startPage();
@@ -334,11 +395,59 @@ public class SysUserController extends BaseController {
      */
     @RequiresPermissions("system:user:export")
     @Log(title = "导出系统用户表", businessType = BusinessType.EXPORT)
+    @DataScope
     @GetMapping("/export")
     public Result export(SysUser sysUser)
     {
         List<SysUser> list = sysUserService.selectSysUserList(sysUser);
         ExcelUtil<SysUser> util = new ExcelUtil<SysUser>(SysUser.class);
         return util.exportExcel(list, "sysUser");
+    }
+
+    /** 写操作前校验目标用户是否在当前登录者的数据权限范围内 */
+    private Result assertCanAccessUser(Long userId)
+    {
+        if (userId == null)
+        {
+            return null;
+        }
+        LoginUser loginUser = getLoginUser();
+        if (loginUser == null)
+        {
+            return Result.error("未登录");
+        }
+        SysUser target = sysUserService.selectSysUserById(userId);
+        if (target == null)
+        {
+            return Result.error("用户不存在");
+        }
+        Long deptId = target.getDeptId() == null ? null : target.getDeptId().longValue();
+        if (!dataPermissionHelper.canAccessUser(loginUser, target.getUserId(), deptId))
+        {
+            return Result.error("没有权限操作该用户数据");
+        }
+        return null;
+    }
+
+    /**
+     * 新增/改部门：deptId 须落在操作者可见部门内（管理员不限制）。
+     * deptId 为空时不拦（兼容未选部门的历史数据）。
+     */
+    private Result assertCanAssignDept(Integer deptId)
+    {
+        if (deptId == null)
+        {
+            return null;
+        }
+        LoginUser loginUser = getLoginUser();
+        if (loginUser == null)
+        {
+            return Result.error("未登录");
+        }
+        if (!dataPermissionHelper.canAccessDept(loginUser, deptId.longValue()))
+        {
+            return Result.error("没有权限将用户分配到该部门");
+        }
+        return null;
     }
 }

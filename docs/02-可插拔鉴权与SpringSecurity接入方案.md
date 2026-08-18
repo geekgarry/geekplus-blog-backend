@@ -210,10 +210,12 @@ Cookie 名可继续叫 `Plus-Token`，与头部分开。
 2. **中期**：补 Spring Security 适配器，测试环境可切换，生产默认 Shiro。  
 3. **不要**：为了「用上 Security」同步大改 Redis 会话模型或前端动态路由。  
 4. **缓存与会话瘦身**：与框架无关，继续按 [03 篇](./03-Caffeine与Redis双重缓存与会话瘦身.md) 推进。  
+5. **数据权限**：切 Security 后仍走框架无关的 `@DataScope`；细粒度规则可对标 Jeecg——见 [08 篇](./08-SpringSecurity下的数据权限与Jeecg对照.md)。  
 
 ---
 
 ## 上下篇
 
 - 上一篇：[01-全栈技术架构与前后端协作.md](./01-全栈技术架构与前后端协作.md)  
-- 下一篇：[03-Caffeine与Redis双重缓存与会话瘦身.md](./03-Caffeine与Redis双重缓存与会话瘦身.md)
+- 下一篇：[03-Caffeine与Redis双重缓存与会话瘦身.md](./03-Caffeine与Redis双重缓存与会话瘦身.md)  
+- 延伸：[08-SpringSecurity下的数据权限与Jeecg对照.md](./08-SpringSecurity下的数据权限与Jeecg对照.md)

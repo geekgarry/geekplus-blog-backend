@@ -238,6 +238,8 @@ public interface Constant {
 	String RBAC_ROLE_ROUTE_MENUS = "rbac:role:routes:";
 	/** 角色自定义数据权限部门 ID 列表 */
 	String RBAC_ROLE_DEPTS = "rbac:role:depts:";
+	/** 角色 data_scope 字符串缓存（避免 Redis 会话里角色范围过期） */
+	String RBAC_ROLE_DATASCOPE = "rbac:role:datascope:";
 	/** 前台博客导航（文章分类树） */
 	String BLOG_NAV_MENU = "blog:nav:category:tree";
 	/** 权限版本（变更时自增，便于会话侧感知） */

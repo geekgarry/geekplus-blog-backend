@@ -181,6 +181,14 @@ public class SysUserTokenService {
         return null;
     }
 
+    /** 按用户名读取 Redis 会话（角色变更时刷新目标用户，而非当前操作者） */
+    public LoginUser getLoginUserByUsername(String username) {
+        if (StringUtils.isEmpty(username)) {
+            return null;
+        }
+        return (LoginUser) redisUtil.get(getTokenKey(username));
+    }
+
     public void refreshRedisUser(LoginUser loginUser) {
         String userKey = loginUser.getUsername();
         // 会话瘦身：不把大权限集写入 Redis，鉴权时按角色从 RBAC 缓存组装

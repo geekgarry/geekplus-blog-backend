@@ -4,10 +4,13 @@ import com.geekplus.common.annotation.Log;
 import com.geekplus.common.annotation.RepeatSubmit;
 import com.geekplus.common.constant.HttpStatus;
 import com.geekplus.common.core.controller.BaseController;
+import com.geekplus.common.datascope.DataPermissionHelper;
+import com.geekplus.common.domain.LoginUser;
 import com.geekplus.common.domain.Result;
 import com.geekplus.common.enums.BusinessType;
 import com.geekplus.common.enums.OperatorType;
 import com.geekplus.common.page.PageDataInfo;
+import com.geekplus.common.security.AdminAuthUtils;
 import com.geekplus.common.util.poi.ExcelUtil;
 import com.geekplus.common.util.string.StringUtils;
 import com.geekplus.framework.aspect.DataScopeAspect;
@@ -27,8 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 系统角色表 系统角色表
- * Created by CodeGenerator on 2023/06/18.
+ * 系统角色表。含菜单授权与「数据权限」data_scope / sys_role_dept 维护。
  */
 @RestController
 @RequestMapping("/sys/role")
@@ -42,6 +44,9 @@ public class SysRoleController extends BaseController {
 
     @Resource
     private com.geekplus.webapp.system.service.cache.RbacCacheService rbacCacheService;
+
+    @Resource
+    private DataPermissionHelper dataPermissionHelper;
 
     /**
      * 增加 系统角色表
@@ -155,8 +160,10 @@ public class SysRoleController extends BaseController {
     }
 
     /**
-     * 保存角色数据权限范围：更新 data_scope；自定权限时全量替换 sys_role_dept
+     * 保存角色数据权限范围：更新 data_scope；自定权限时全量替换 sys_role_dept。
      * body: { roleId, dataScope, deptIds: [] }
+     * <p>
+     * 「全部数据权限」仅系统豁免账号可设；自定部门须落在操作者可见范围内。
      */
     @RequiresPermissions("system:role:update")
     @Log(title = "角色数据权限", businessType = BusinessType.UPDATE, operatorType = OperatorType.MANAGE, isSaveRequestData = false)
@@ -168,9 +175,20 @@ public class SysRoleController extends BaseController {
         {
             return Result.error("角色ID不能为空");
         }
+        LoginUser loginUser = getLoginUser();
+        if (loginUser == null)
+        {
+            return Result.error("未登录");
+        }
         // 统一成字符串，兼容前端传数字
         String dataScope = sysRole.getDataScope() == null ? null : String.valueOf(sysRole.getDataScope()).trim();
         sysRole.setDataScope(dataScope);
+
+        // 非特权账号不可把角色设为「全部数据权限」（防止权限放大）
+        if (DataScopeAspect.DATA_SCOPE_ALL.equals(dataScope) && !AdminAuthUtils.canAssignAllDataScope(loginUser))
+        {
+            return Result.error("没有权限设置全部数据权限");
+        }
 
         SysRole update = new SysRole();
         update.setRoleId(sysRole.getRoleId());
@@ -188,6 +206,10 @@ public class SysRoleController extends BaseController {
                 {
                     continue;
                 }
+                if (!dataPermissionHelper.canAccessDept(loginUser, deptId))
+                {
+                    return Result.error("没有权限将不可见部门授予角色");
+                }
                 SysRoleDept rd = new SysRoleDept();
                 rd.setRoleId(sysRole.getRoleId());
                 rd.setDeptId(deptId);
@@ -195,6 +217,7 @@ public class SysRoleController extends BaseController {
             }
             sysRoleDeptService.batchInsert(list);
         }
+        // 清角色缓存，使列表 DataScope 立即按新范围生效（切面读 RBAC 缓存，不依赖会话旧值）
         rbacCacheService.evictRole(sysRole.getRoleId());
         return toResult(rows);
     }

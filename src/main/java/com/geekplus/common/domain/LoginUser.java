@@ -62,6 +62,8 @@ public class LoginUser implements Serializable {
 
     //用户所属部门
     private SysDeptVO sysDept;
+    /** 部门 ID 兜底（会话瘦身后仍可供「本部门」数据权限使用） */
+    private Long deptId;
 
     //用户角色
     private List<SysRoleVO> sysRoleList;
@@ -87,15 +89,61 @@ public class LoginUser implements Serializable {
         this.avatar = sysUser.getAvatar();
         this.gender = sysUser.getGender();
         this.userType = sysUser.getUserType();
-        setSysDept(build(sysUser.getSysDept()));
+        if (sysUser.getDeptId() != null) {
+            this.deptId = sysUser.getDeptId().longValue();
+        }
+        setSysDept(buildDept(sysUser));
         setSysRoleList(build(sysUser.getSysRoleList()));
         this.sysMenuList = permissionsMenu;
     }
 
+    /** 刷新权限时保留原会话元数据（tokenId / UA / IP 等），避免丢在线态。 */
+    public void copySessionMetaFrom(LoginUser other)
+    {
+        if (other == null)
+        {
+            return;
+        }
+        this.tokenId = other.tokenId;
+        this.loginIp = other.loginIp;
+        this.loginLocation = other.loginLocation;
+        this.browser = other.browser;
+        this.os = other.os;
+        this.loginTime = other.loginTime;
+    }
+
+    /**
+     * 构建部门 VO；无关联对象时用用户上的 deptId 兜底，供数据权限「本部门」使用。
+     */
+    public SysDeptVO buildDept(SysUser sysUser) {
+        if (sysUser == null) {
+            return null;
+        }
+        SysDept sysDept = sysUser.getSysDept();
+        if (sysDept != null && sysDept.getDeptId() != null) {
+            SysDeptVO vo = new SysDeptVO();
+            vo.setDeptId(sysDept.getDeptId());
+            vo.setDeptName(sysDept.getDeptName());
+            vo.setLeader(sysDept.getLeader());
+            return vo;
+        }
+        if (sysUser.getDeptId() != null) {
+            SysDeptVO vo = new SysDeptVO();
+            vo.setDeptId(sysUser.getDeptId().longValue());
+            return vo;
+        }
+        return null;
+    }
+
     /**
       * @Description //构建新的SysDept显示对象
+      * @deprecated 请用 {@link #buildDept(SysUser)}，避免 sysDept 为空 NPE
       */
+    @Deprecated
     public SysDeptVO build(SysDept sysDept) {
+        if (sysDept == null) {
+            return null;
+        }
         SysDeptVO sysDeptVO = new SysDeptVO();
         sysDeptVO.setDeptId(sysDept.getDeptId());
         sysDeptVO.setDeptName(sysDept.getDeptName());
@@ -191,6 +239,23 @@ public class LoginUser implements Serializable {
 
     public void setSysDept(SysDeptVO sysDept) {
         this.sysDept = sysDept;
+        if (sysDept != null && sysDept.getDeptId() != null) {
+            this.deptId = sysDept.getDeptId();
+        }
+    }
+
+    public Long getDeptId() {
+        if (deptId != null) {
+            return deptId;
+        }
+        if (sysDept != null) {
+            return sysDept.getDeptId();
+        }
+        return null;
+    }
+
+    public void setDeptId(Long deptId) {
+        this.deptId = deptId;
     }
 
     public List<SysRoleVO> getSysRoleList() {

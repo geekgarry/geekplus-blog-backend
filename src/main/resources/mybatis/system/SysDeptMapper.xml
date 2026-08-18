@@ -37,52 +37,54 @@
          from sys_dept sd
     </sql>
 
-    <!--数据查询操作SQL(非联合查询)-->
+    <!--数据查询操作SQL；表别名 sd 供 @DataScope(deptAlias="sd") 拼过滤条件-->
     <select id="selectSysDeptList" parameterType="SysDept" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysDeptVo"/>
         <where>
             <if test="deptId !=null ">
-                AND dept_id = #{deptId,jdbcType=INTEGER}
+                AND sd.dept_id = #{deptId,jdbcType=INTEGER}
             </if>
             <if test="parentId !=null ">
-                AND parent_id = #{parentId,jdbcType=INTEGER}
+                AND sd.parent_id = #{parentId,jdbcType=INTEGER}
             </if>
             <if test="ancestors !=null  and ancestors != ''">
-                AND ancestors = #{ancestors,jdbcType=VARCHAR}
+                AND sd.ancestors = #{ancestors,jdbcType=VARCHAR}
             </if>
             <if test="deptName !=null  and deptName != ''">
-                AND dept_name = #{deptName,jdbcType=VARCHAR}
+                AND sd.dept_name = #{deptName,jdbcType=VARCHAR}
             </if>
             <if test="orderNum !=null ">
-                AND order_num = #{orderNum,jdbcType=INTEGER}
+                AND sd.order_num = #{orderNum,jdbcType=INTEGER}
             </if>
             <if test="leader !=null  and leader != ''">
-                AND leader = #{leader,jdbcType=VARCHAR}
+                AND sd.leader = #{leader,jdbcType=VARCHAR}
             </if>
             <if test="phone !=null  and phone != ''">
-                AND phone = #{phone,jdbcType=VARCHAR}
+                AND sd.phone = #{phone,jdbcType=VARCHAR}
             </if>
             <if test="email !=null  and email != ''">
-                AND email = #{email,jdbcType=VARCHAR}
+                AND sd.email = #{email,jdbcType=VARCHAR}
             </if>
             <if test="status !=null">
-                AND status = #{status,jdbcType=INTEGER}
+                AND sd.status = #{status,jdbcType=INTEGER}
             </if>
             <if test="delFlag !=null">
-                AND del_flag = #{delFlag,jdbcType=INTEGER}
+                AND sd.del_flag = #{delFlag,jdbcType=INTEGER}
             </if>
             <if test="createBy !=null  and createBy != ''">
-                AND create_by = #{createBy,jdbcType=VARCHAR}
+                AND sd.create_by = #{createBy,jdbcType=VARCHAR}
             </if>
             <if test="createTime !=null ">
-                AND create_time = #{createTime,jdbcType=TIMESTAMP}
+                AND sd.create_time = #{createTime,jdbcType=TIMESTAMP}
             </if>
             <if test="updateBy !=null  and updateBy != ''">
-                AND update_by = #{updateBy,jdbcType=VARCHAR}
+                AND sd.update_by = #{updateBy,jdbcType=VARCHAR}
             </if>
             <if test="updateTime !=null ">
-                AND update_time = #{updateTime,jdbcType=TIMESTAMP}
+                AND sd.update_time = #{updateTime,jdbcType=TIMESTAMP}
             </if>
+            <!-- 数据范围过滤 -->
+            ${params.dataScope}
         </where>
     </select>
 
@@ -142,6 +144,8 @@
             <if test="updateTime !=null ">
                 AND sd.update_time = #{updateTime,jdbcType=TIMESTAMP}
             </if>
+            <!-- 数据范围过滤 -->
+            ${params.dataScope}
         </where>
     </select>
 

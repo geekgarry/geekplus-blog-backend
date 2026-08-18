@@ -13,12 +13,28 @@ server:
       min-spare: 30
     #tomcat连接超时时间
     connection-timeout: 6000
-  #ssl:
-    #key-store: classpath:ssl/tomcat.pkcs12
-    #key-store-password: 111111
-    #key-store-type: PKCS12
-    #key-alias: admin
-    #enabled: true
+  ssl:
+    #host-name: your_domain
+    # ---- PEM：路径只配这一处，热更新直接复用，修改为你服务器中的路径！！！ ----
+    certificate: /yourserverpath/fullchain.cer
+    certificate-private-key: /yourserverpath/private.key
+    # 私钥有密码时填写
+    key-password: 123456
+    # fullchain 已含链时不必再配；若只有域名证可另配：
+    # certificate-chain: /home/file/ssl/ca.cer
+    #
+    # ---- 兼容旧 PKCS12（reload.mode=pkcs12 或未配 PEM 时）----
+    # key-store: classpath:ssl/tomcat.pkcs12
+    # key-store-password: 123456
+    # key-store-type: PKCS12
+    reload:
+      enabled: true
+      # auto | pem | pkcs12（auto：有 certificate+private-key 则走 PEM）
+      mode: auto
+      check-interval-ms: 60000
+    #port: 8443
+    #key-alias: maike
+    #enabled: false # 禁用 Spring Boot 自动配置的 SSL
 #eureka的注册中心地址
 #eureka:
 #  client:

@@ -222,35 +222,61 @@ public class SysUserLoginController extends BaseController {
 
     @GetMapping("/getMenu")
     public Result getMenuList(){
-        HttpServletRequest request=ServletUtil.getRequest();
+        HttpServletRequest request = ServletUtil.getRequest();
         LoginUser loginUser = tokenService.getLoginUser(request);
+        if (loginUser == null) {
+            return Result.error(ApiExceptionEnum.LOGIN_AUTH);
+        }
         String userName = jwtUtil.getUserNameFromToken(tokenService.getToken(request));
-        Map<String,Object> map=new HashMap<>();
-        // 菜单 / 权限优先走角色级双重缓存；路由由 menus 过滤 B，不另存 routes
-        List<SysMenu> routeMenus = rbacCacheService.resolveRouteMenus(loginUser.getSysRoleList());
+        return Result.success(buildAuthMenuPayload(loginUser, userName));
+    }
+
+    /**
+     * 组装管理端菜单 / 权限包（getMenu 与 refreshUserAuth 共用）。
+     */
+    private Map<String, Object> buildAuthMenuPayload(LoginUser loginUser, String userName) {
+        List<SysRoleVO> roles = loginUser.getSysRoleList();
+        List<SysMenu> routeMenus = rbacCacheService.resolveRouteMenus(roles);
         if (routeMenus == null || routeMenus.isEmpty()) {
             routeMenus = sysMenuService.getMenuPermsByUsername(userName).stream()
-                    .filter(sysMenu -> sysMenu.getMenuType() == null || !sysMenu.getMenuType().equals("B"))
+                    .filter(m -> m.getMenuType() == null || !"B".equals(m.getMenuType()))
                     .collect(Collectors.toList());
         }
-        Set permsSet = rbacCacheService.resolvePerms(loginUser.getSysRoleList());
+        Set<String> permsSet = rbacCacheService.resolvePerms(roles);
         if (permsSet == null || permsSet.isEmpty()) {
-            permsSet = loginUser.getSysMenuList();
+            Set<String> legacy = loginUser.getSysMenuList();
+            permsSet = legacy != null ? legacy : Collections.emptySet();
         }
-        List<SysMenu> menuList = SysMenuUtil.getParentMenuList(routeMenus);
-        Set roleSet=loginUser.getSysRoleList().stream().filter(sysRole -> !StringUtils.isEmpty(sysRole.getRoleKey())).map(SysRoleVO::getRoleKey).collect(Collectors.toSet());
-        Set roleNameSet=loginUser.getSysRoleList().stream().filter(sysRole -> !StringUtils.isEmpty(sysRole.getRoleName())).map(SysRoleVO::getRoleName).collect(Collectors.toSet());
+
+        Set<String> roleKeys = new LinkedHashSet<>();
+        Set<String> roleNames = new LinkedHashSet<>();
+        if (roles != null) {
+            for (SysRoleVO role : roles) {
+                if (role == null) {
+                    continue;
+                }
+                if (StringUtils.isNotEmpty(role.getRoleKey())) {
+                    roleKeys.add(role.getRoleKey());
+                }
+                if (StringUtils.isNotEmpty(role.getRoleName())) {
+                    roleNames.add(role.getRoleName());
+                }
+            }
+        }
+
+        Map<String, Object> map = new HashMap<>(16);
         map.put("username", userName);
         map.put("nickname", loginUser.getNickname());
         map.put("userId", loginUser.getUserId());
         map.put("avatar", loginUser.getAvatar());
         map.put("userType", loginUser.getUserType());
-        map.put("menuList", menuList);
+        map.put("deptId", loginUser.getDeptId());
+        map.put("menuList", SysMenuUtil.getParentMenuList(routeMenus));
         map.put("permsSet", permsSet);
-        map.put("roles", roleSet);
-        map.put("roleNames", roleNameSet);
+        map.put("roles", roleKeys);
+        map.put("roleNames", roleNames);
         map.put("permVer", rbacCacheService.currentPermVer());
-        return Result.success(map);
+        return map;
     }
 
     /* 登出操作 */
@@ -263,7 +289,6 @@ public class SysUserLoginController extends BaseController {
         HttpServletRequest request=ServletUtil.getRequest();
         String token = tokenService.getToken(request);
         tokenService.removeOnlineToken(token);
-        //tokenService.delLoginUser(token);
         return Result.success();
     }
 
@@ -278,25 +303,33 @@ public class SysUserLoginController extends BaseController {
     }
 
     /**
-     * @Author geekplus
-     * @Description //获取当前用户的权限菜单Menus
+     * 刷新当前用户菜单 + 数据权限会话。
+     * 只失效角色缓存并回填 dataScope；menus/perms 由 buildAuthMenuPayload 懒加载一次，避免重复预热。
      */
     @GetMapping("/refreshUserAuth")
     public Result refreshUserAuth() {
         String userName = tokenService.getSysUserName();
-        SysUser sysUserInfo =sysUserService.getSysUserInfoBy(userName);
-        // 会话瘦身：perms 不写入 Redis，由 RBAC 缓存提供；此处仅刷新用户/角色基本信息
-        LoginUser loginUser = new LoginUser(sysUserInfo, Collections.emptySet());
-        tokenService.refreshTokenUser(loginUser);
-        // 确保当前角色缓存可用
-        if (loginUser.getSysRoleList() != null) {
-            for (SysRoleVO r : loginUser.getSysRoleList()) {
-                if (r != null && r.getRoleId() != null) {
-                    rbacCacheService.getRolePerms(r.getRoleId());
-                }
-            }
+        if (StringUtils.isEmpty(userName)) {
+            return Result.error(ApiExceptionEnum.LOGIN_AUTH);
         }
-        return Result.success("权限已刷新");
+        SysUser sysUserInfo = sysUserService.getSysUserInfoBy(userName);
+        if (sysUserInfo == null) {
+            return Result.error("用户不存在或已删除");
+        }
+        LoginUser loginUser = new LoginUser(sysUserInfo, Collections.emptySet());
+        loginUser.copySessionMetaFrom(tokenService.getLoginUser(ServletUtil.getRequest()));
+
+        List<SysRoleVO> roles = loginUser.getSysRoleList();
+        if (roles != null && !roles.isEmpty()) {
+            List<Long> roleIds = roles.stream()
+                    .filter(r -> r != null && r.getRoleId() != null)
+                    .map(SysRoleVO::getRoleId)
+                    .collect(Collectors.toList());
+            rbacCacheService.evictRoles(roleIds);
+            rbacCacheService.syncRoleDataScopes(roles);
+        }
+        tokenService.refreshTokenUser(loginUser);
+        return Result.success("权限已刷新", buildAuthMenuPayload(loginUser, userName));
     }
 
     /** 管理端手动刷新全部 RBAC 缓存 */

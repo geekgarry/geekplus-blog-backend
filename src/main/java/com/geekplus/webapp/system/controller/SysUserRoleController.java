@@ -10,6 +10,7 @@ import com.geekplus.common.enums.BusinessType;
 import com.geekplus.common.enums.OperatorType;
 import com.geekplus.common.page.PageDataInfo;
 import com.geekplus.common.util.http.ServletUtil;
+import com.geekplus.common.util.string.StringUtils;
 import com.geekplus.webapp.common.service.SysUserTokenService;
 import com.geekplus.webapp.system.entity.SysUser;
 import com.geekplus.webapp.system.entity.SysUserRole;
@@ -43,10 +44,7 @@ public class SysUserRoleController extends BaseController {
     @RepeatSubmit
     public Result add(@RequestBody SysUserRole sysUserRole) {
         if(sysUserRoleService.insertSysUserRole(sysUserRole)>0){
-            LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
-            SysUser sysUser = sysUserService.getSysUserInfoBy(sysUserTokenService.getSysUserName());
-            loginUser.setSysRoleList(loginUser.build(sysUser.getSysRoleList()));
-            sysUserTokenService.setLoginUser(loginUser);
+            refreshOrKickUserSession(sysUserRole.getUserId());
             return Result.success();
         }else {
             return Result.error();
@@ -61,10 +59,13 @@ public class SysUserRoleController extends BaseController {
     @RepeatSubmit
     public Result batchAdd(@RequestBody List<SysUserRole> sysUserRole) {
         if(sysUserRoleService.batchInsertSysUserRoleList(sysUserRole)>0){
-            LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
-            SysUser sysUser = sysUserService.getSysUserInfoBy(sysUserTokenService.getSysUserName());
-            loginUser.setSysRoleList(loginUser.build(sysUser.getSysRoleList()));
-            sysUserTokenService.setLoginUser(loginUser);
+            if (sysUserRole != null) {
+                for (SysUserRole ur : sysUserRole) {
+                    if (ur != null) {
+                        refreshOrKickUserSession(ur.getUserId());
+                    }
+                }
+            }
             return Result.success();
         }else {
             return Result.error();
@@ -141,10 +142,7 @@ public class SysUserRoleController extends BaseController {
     @GetMapping("/deleteUserRole")
     public Result removeUserRole(SysUserRole sysUserRole) {
         if(sysUserRoleService.deleteSysUserRole(sysUserRole)>0){
-            LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
-            SysUser sysUser = sysUserService.getSysUserInfoBy(sysUserTokenService.getSysUserName());
-            loginUser.setSysRoleList(loginUser.build(sysUser.getSysRoleList()));
-            sysUserTokenService.setLoginUser(loginUser);
+            refreshOrKickUserSession(sysUserRole.getUserId());
             return Result.success();
         }else {
             return Result.error();
@@ -158,13 +156,43 @@ public class SysUserRoleController extends BaseController {
     @PutMapping("/batchDeleteUserRole")
     public Result removeUserRoleList(@RequestBody List<SysUserRole> sysUserRoleList) {
         if(sysUserRoleService.batchDeleteSysUserRole(sysUserRoleList)>0){
-            LoginUser loginUser = sysUserTokenService.getLoginUser(ServletUtil.getRequest());
-            SysUser sysUser = sysUserService.getSysUserInfoBy(sysUserTokenService.getSysUserName());
-            loginUser.setSysRoleList(loginUser.build(sysUser.getSysRoleList()));
-            sysUserTokenService.setLoginUser(loginUser);
+            if (sysUserRoleList != null) {
+                for (SysUserRole ur : sysUserRoleList) {
+                    if (ur != null) {
+                        refreshOrKickUserSession(ur.getUserId());
+                    }
+                }
+            }
             return Result.success();
         }else {
             return Result.error();
+        }
+    }
+
+    /**
+     * 用户角色变更后：刷新该用户 Redis 会话中的角色列表（含 dataScope）；
+     * 找不到会话则忽略。数据范围过滤本身已改为读角色缓存，不依赖会话旧值。
+     */
+    private void refreshOrKickUserSession(Long userId) {
+        if (userId == null) {
+            return;
+        }
+        try {
+            SysUser target = sysUserService.selectSysUserById(userId);
+            if (target == null || StringUtils.isEmpty(target.getUsername())) {
+                return;
+            }
+            LoginUser cached = (LoginUser) sysUserTokenService.getLoginUserByUsername(target.getUsername());
+            if (cached == null) {
+                return;
+            }
+            SysUser fresh = sysUserService.getSysUserInfoBy(target.getUsername());
+            if (fresh != null) {
+                cached.setSysRoleList(cached.build(fresh.getSysRoleList()));
+                cached.setSysDept(cached.buildDept(fresh));
+                sysUserTokenService.setLoginUser(cached);
+            }
+        } catch (Exception ignored) {
         }
     }
 }

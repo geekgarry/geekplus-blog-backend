@@ -89,7 +89,7 @@ HTTP
 | 缓存 | Redis；热点 RBAC/配置走 `TwoLevelCache`（Caffeine + Redis） |
 | 其它 | WebSocket、Quartz、Freemarker 代码生成、文件与签名资源等 |
 
-技术文档索引：[`docs/README.md`](./docs/README.md)（全栈契约、可插拔鉴权、会话瘦身与双重缓存）。
+技术文档索引：[`docs/README.md`](./docs/README.md)（全栈契约、可插拔鉴权、会话瘦身、[数据权限用法](./docs/07-数据权限使用说明.md)）。
 
 ---
 
