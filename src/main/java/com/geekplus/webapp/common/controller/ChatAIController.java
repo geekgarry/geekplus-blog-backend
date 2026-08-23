@@ -271,7 +271,11 @@ public class ChatAIController extends BaseController {
             //&&当第一个表达式的值为false的时候，则不再计算第二个表达式,&则怎么样都执行
             //||当第一个表达式的值为true，就不再计算后面的表达式，｜则也会都执行
             if(FileUtils.isStringType(chatPromptReq.getMediaData()) && Base64Util.isBase64(chatPromptReq.getMediaData().toString())) {
-                fileUrl = FileUploadUtils.base64StrToFile(chatPromptReq.getMediaData().toString());
+                if(StringUtils.isEmpty(chatPromptReq.getUsername()) || chatPromptReq.getUsername().contains("guest")) {
+                    fileUrl = FileUploadUtils.base64StrToFile("guest", chatPromptReq.getMediaData().toString());
+                }else {
+                    fileUrl = FileUploadUtils.base64StrToFile("chatData", chatPromptReq.getMediaData().toString());
+                }
             }
             //chatPrompt.setMediaData(Base64Util.getBase64Str(chatPrompt.getMediaData().toString()));
         }

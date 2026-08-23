@@ -220,11 +220,22 @@ public class FileManagerController extends BaseController {
     }
 
     @PostMapping("/read-text")
-    public Result readTextFile(@RequestParam("path") String path) {
-        String content = fileService.readTextFile(path);
-        Result result = Result.success();
-        result.put("data", content);
-        return result;
+    public Result readTextFile(@RequestParam("path") String path,
+                               @RequestParam(value = "maxChars", required = false) Integer maxChars) {
+        try {
+            String content = fileService.readTextFile(path, maxChars);
+            Result result = Result.success();
+            result.put("data", content);
+            if (maxChars != null && maxChars > 0) {
+                result.put("truncated", true);
+                result.put("maxChars", maxChars);
+            }
+            return result;
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("读取文本失败: " + e.getMessage());
+        }
     }
 
     @PostMapping("/save-text")

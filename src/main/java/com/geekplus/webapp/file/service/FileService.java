@@ -495,16 +495,42 @@ public class FileService {
         return new File(hasBasePath(targetPath)).exists();
     }
 
+    /**
+     * 读取文本。maxChars &gt; 0 时只读前 N 个字符（悬停摘要用），避免大文件全量进内存/网络。
+     * maxChars 为空或 ≤0 时读全文，但单文件超过 {@link #TEXT_READ_MAX_BYTES} 则拒绝，防止拖垮 JVM/前端。
+     */
+    public static final long TEXT_READ_MAX_BYTES = 5L * 1024 * 1024;
+
     public String readTextFile(String relativePath) {
+        return readTextFile(relativePath, null);
+    }
+
+    public String readTextFile(String relativePath, Integer maxChars) {
         Path filePath = resolvePath(relativePath);
         try {
-            // jdk11的方法
-            //Files.readString(filePath, StandardCharsets.UTF_8);
-            // 下面是jdk8的替代方案
-            // 方案一(快速读取小文本文件)
-            //return new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
-            // 方案二(按行处理文本数据，代码简洁)
-            return Files.lines(filePath).collect(Collectors.joining(System.lineSeparator()));
+            long size = Files.size(filePath);
+            boolean limited = maxChars != null && maxChars > 0;
+            if (!limited && size > TEXT_READ_MAX_BYTES) {
+                throw new IllegalArgumentException(
+                    "文本过大（>" + (TEXT_READ_MAX_BYTES / 1024 / 1024) + "MB），请下载后用本地编辑器打开");
+            }
+            // 按字符上限流式读取，悬停预览不必 Files.lines 全量 collect
+            int limit = limited ? maxChars : Integer.MAX_VALUE;
+            StringBuilder sb = new StringBuilder(Math.min((int) Math.min(size, 65536), limit > 0 && limit < Integer.MAX_VALUE ? limit + 16 : 65536));
+            try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
+                char[] buf = new char[4096];
+                int n;
+                while ((n = reader.read(buf)) != -1) {
+                    if (sb.length() + n > limit) {
+                        sb.append(buf, 0, limit - sb.length());
+                        break;
+                    }
+                    sb.append(buf, 0, n);
+                }
+            }
+            return sb.toString();
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (IOException e) {
             throw new RuntimeException("读取文本文件失败: " + filePath, e);
         }
@@ -512,17 +538,9 @@ public class FileService {
 
     public void saveTextFile(String relativePath, String content) {
         Path filePath = resolvePath(relativePath);
-        try {
-            // jdk11+的写入内容方法
-            //Files.writeString(filePath, content, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            // 方式1：Files.write + 字节转换
-            //Files.write(filePath, content.getBytes(StandardCharsets.UTF_8));
-
-            // 方式2：BufferedWriter（推荐用于大文件或多行写入）
-            BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8);
-            writer.write(content);
-            // flush() 在 close() 时会自动调用，但显式调用有助于调试中间状态
-            writer.flush();
+        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            writer.write(content == null ? "" : content);
         } catch (IOException e) {
             throw new RuntimeException("保存文本文件失败: " + filePath, e);
         }

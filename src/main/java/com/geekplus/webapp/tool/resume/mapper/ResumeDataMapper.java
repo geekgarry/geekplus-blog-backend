@@ -3,6 +3,7 @@ package com.geekplus.webapp.tool.resume.mapper;
 import com.geekplus.webapp.tool.resume.entity.ResumeData;
 import org.apache.ibatis.annotations.*;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -34,6 +35,10 @@ public interface ResumeDataMapper {
 
     @Update("UPDATE resume_data SET title = #{title}, data_json = #{dataJson}, updated_at = #{updatedAt} WHERE id = #{id}")
     int update(ResumeData resumeData);
+
+    /** 仅改名称，不碰 data_json，避免改名时覆盖正文 */
+    @Update("UPDATE resume_data SET title = #{title}, updated_at = #{updatedAt} WHERE id = #{id}")
+    int updateTitle(@Param("id") Long id, @Param("title") String title, @Param("updatedAt") Date updatedAt);
 
     @Delete("DELETE FROM resume_data WHERE id = #{id}")
     int deleteById(Long id);

@@ -183,11 +183,6 @@
             <artifactId>shiro-web</artifactId>
             <version>1.7.1</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>org.apache.shiro</groupId>-->
-<!--            <artifactId>shiro-spring-boot-starter</artifactId>-->
-<!--            <version>1.4.0</version>-->
-<!--        </dependency>-->
         <!--分页插件-->
 <!--        <dependency>-->
 <!--            <groupId>com.github.pagehelper</groupId>-->

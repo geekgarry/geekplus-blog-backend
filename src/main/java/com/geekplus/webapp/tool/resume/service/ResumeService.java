@@ -92,6 +92,29 @@ public class ResumeService {
         }
     }
 
+    /**
+     * 仅修改简历显示名称，不改动 data_json。
+     * @return 更新后的记录；无权限或不存在返回 null
+     */
+    public ResumeData renameResume(Long userId, Long id, String title) {
+        if (userId == null || id == null) {
+            return null;
+        }
+        String nextTitle = (title == null || title.trim().isEmpty()) ? "未命名简历" : title.trim();
+        if (nextTitle.length() > 80) {
+            nextTitle = nextTitle.substring(0, 80);
+        }
+        ResumeData existing = resumeDataMapper.findById(id);
+        if (existing == null || !userId.equals(existing.getUserId())) {
+            return null;
+        }
+        Date now = new Date();
+        resumeDataMapper.updateTitle(id, nextTitle, now);
+        existing.setTitle(nextTitle);
+        existing.setUpdatedAt(now);
+        return enrich(existing);
+    }
+
     private String buildDataJson(ResumeSaveRequest request) throws Exception {
         JSONObject json;
         if (request.getData() == null) {

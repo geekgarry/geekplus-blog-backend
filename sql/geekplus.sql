@@ -736,4 +736,29 @@ CREATE TABLE IF NOT EXISTS gp_site_daily_stats (
   PRIMARY KEY (stat_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='站点每日运营汇总';
 
+-- 岗位库：爬虫 Worker / 公开 API 入库，搜索优先查库再补 AI 洞察
+CREATE TABLE IF NOT EXISTS `job_posting` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `source` VARCHAR(32) NOT NULL COMMENT '来源：remotive/manual/...',
+  `source_id` VARCHAR(128) NOT NULL COMMENT '来源侧唯一 ID',
+  `title` VARCHAR(256) NOT NULL,
+  `company` VARCHAR(256) DEFAULT NULL,
+  `city` VARCHAR(128) DEFAULT NULL,
+  `salary` VARCHAR(128) DEFAULT NULL,
+  `summary` TEXT,
+  `requirements` TEXT,
+  `url` VARCHAR(1024) DEFAULT NULL,
+  `industry` VARCHAR(128) DEFAULT NULL,
+  `tags` VARCHAR(512) DEFAULT NULL,
+  `fetched_at` DATETIME DEFAULT NULL,
+  `expire_at` DATETIME DEFAULT NULL,
+  `created_at` DATETIME DEFAULT NULL,
+  `updated_at` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_source_sid` (`source`, `source_id`),
+  KEY `idx_title` (`title`),
+  KEY `idx_city` (`city`),
+  KEY `idx_fetched` (`fetched_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='岗位库';
+
 SET FOREIGN_KEY_CHECKS = 1;

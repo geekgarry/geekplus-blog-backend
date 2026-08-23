@@ -214,3 +214,9 @@ geekplus:
     auth: true
     tls:
       enable: true
+  # 岗位库爬虫 Worker（合规公开源）；建表见 resources/db/job_posting.sql
+  job:
+    crawl:
+      enabled: false
+      cron: "0 20 */6 * * ?"
+      keywords: "frontend,java,product manager,golang"

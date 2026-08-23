@@ -23,6 +23,9 @@
 | **8** | [08-SpringSecurity下的数据权限与Jeecg对照.md](./08-SpringSecurity下的数据权限与Jeecg对照.md) | 切 Security 后数据权限怎么做；对照 / 迁移阶段 |
 | **9** | [09-多租户SaaS改造技术方案.md](./09-多租户SaaS改造技术方案.md) | 后期共享库+tenant_id 多租户；与 data_scope/缓存/鉴权正交的分阶段规划 |
 | **10** | [10-SpringAOP切面为何生效与starter-aop.md](./10-SpringAOP切面为何生效与starter-aop.md) | 为何日志/限流/防重能织入；aspectjweaver 与 starter-aop；DataScope 问题根因对照 |
+| **11** | [11-简历工具AI扩展-解析分析岗位搜索PPT.md](./11-简历工具AI扩展-解析分析岗位搜索PPT.md) | 简历附件解析修复；岗位分析/搜索/PPT API 契约 |
+| **13** | [13-文件管理大文本读取优化.md](./13-文件管理大文本读取优化.md) | read-text 限长/限体积；前端原生 textarea 避免大文本卡顿 |
+| **14** | [14-骨架屏识别API.md](./14-骨架屏识别API.md) | P2 URL 抓取 / P3 图片 AI → 骨架 Schema 契约 |
 
 ---
 
