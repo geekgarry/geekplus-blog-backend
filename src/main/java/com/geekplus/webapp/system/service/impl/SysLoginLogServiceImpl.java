@@ -7,6 +7,7 @@ import com.geekplus.webapp.system.service.SysLoginLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -96,5 +97,11 @@ public class SysLoginLogServiceImpl implements SysLoginLogService {
     @Override
     public void cleanTable() {
         sysLoginLogMapper.cleanTable();
+    }
+
+    @Override
+    public List<Map<String, Object>> countByDay(int days) {
+        int d = Math.min(Math.max(days, 1), 90);
+        return sysLoginLogMapper.countByDay(d);
     }
 }

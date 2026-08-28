@@ -113,6 +113,22 @@ public class SysOperLogController extends BaseController {
     }
 
     /**
+     * 控制台：近 N 天每日操作次数（默认 7 天）
+     */
+    @GetMapping("/countByDay")
+    public Result countByDay(@RequestParam(defaultValue = "7") Integer days) {
+        return Result.success(sysOperLogService.countByDay(days));
+    }
+
+    /**
+     * 控制台：近 N 天操作模块分布（默认 7 天）
+     */
+    @GetMapping("/countByTitle")
+    public Result countByTitle(@RequestParam(defaultValue = "7") Integer days) {
+        return Result.success(sysOperLogService.countByTitle(days));
+    }
+
+    /**
     * 条件查询所有 系统操作日志
     */
     @RequiresPermissions("system:operlog:list")

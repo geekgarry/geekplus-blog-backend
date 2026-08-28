@@ -1,34 +1,16 @@
 package ${basePackage}.webapp.${moduleName}.entity;
 
 import com.geekplus.common.domain.BaseEntity;
+import com.geekplus.common.query.DynamicQueryColumns;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 <#list importList as import>
 import ${import};
 </#list>
-<#--<#list allColumn as item>-->
-<#--<#switch item.javaType>-->
-<#--<#case 'Date'>-->
-<#--import java.util.Date;-->
-<#--<#break>-->
-<#--<#case 'BigDecimal'>-->
-<#--import java.math.BigDecimal;-->
-<#--<#break>-->
-<#--<#case 'BigInteger'>-->
-<#--import java.math.BigInteger;-->
-<#--<#break>-->
-<#--</#switch>-->
-<#--<#if item.javaType == 'Date'>-->
-<#--import java.util.Date;-->
-<#--</#if>-->
-<#--<#if item.javaType == 'BigDecimal'>-->
-<#--import java.math.BigDecimal;-->
-<#--</#if>-->
-<#--<#if item.javaType == 'BigInteger'>-->
-<#--import java.math.BigInteger;-->
-<#--</#if>-->
-<#--</#list>-->
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 功能：${functionName} 对象:${tableName}
@@ -36,14 +18,33 @@ import ${import};
  * @author ${author}
  * @date ${date}
  */
-public class ${modelNameUpperCamel} extends BaseEntity
+public class ${modelNameUpperCamel} extends BaseEntity implements DynamicQueryColumns
 {
     private static final long serialVersionUID = 1L;
+
+    /** 动态查询白名单：前端 field → 列名（排除主键/密码/审计敏感列可按需调整） */
+    private static final Map<String, String> DYNAMIC_QUERY_COLUMNS;
+    static {
+        Map<String, String> m = new LinkedHashMap<>();
+<#if allColumn?exists>
+<#list allColumn as column>
+<#if column.isPk!='1' && column.smallColumnName != 'password' && column.smallColumnName != 'delFlag'>
+        m.put("${column.smallColumnName}", "${column.columnName}");
+</#if>
+</#list>
+</#if>
+        DYNAMIC_QUERY_COLUMNS = Collections.unmodifiableMap(m);
+    }
+
+    @Override
+    public Map<String, String> dynamicQueryColumns() {
+        return DYNAMIC_QUERY_COLUMNS;
+    }
 
     <#list allColumn as column>
 
     /**
-     * ${column.columnComment}
+     * ${functionName} ${title}
      */
     private ${column.javaType} ${column.smallColumnName};
     </#list>

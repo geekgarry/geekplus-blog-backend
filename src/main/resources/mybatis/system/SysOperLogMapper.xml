@@ -299,4 +299,23 @@
     <update id="cleanTable">
         truncate table sys_oper_log
     </update>
+
+    <!-- 控制台：近 N 天每日操作次数 -->
+    <select id="countByDay" resultType="map">
+        SELECT DATE_FORMAT(oper_time, '%Y-%m-%d') AS `date`, COUNT(*) AS `count`
+        FROM sys_oper_log
+        WHERE oper_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+        GROUP BY DATE_FORMAT(oper_time, '%Y-%m-%d')
+        ORDER BY `date` ASC
+    </select>
+
+    <!-- 控制台：近 N 天操作模块分布 -->
+    <select id="countByTitle" resultType="map">
+        SELECT IFNULL(NULLIF(title, ''), '其他') AS `name`, COUNT(*) AS `value`
+        FROM sys_oper_log
+        WHERE oper_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+        GROUP BY IFNULL(NULLIF(title, ''), '其他')
+        ORDER BY `value` DESC
+        LIMIT 12
+    </select>
 </mapper>

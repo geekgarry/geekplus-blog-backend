@@ -10,6 +10,8 @@ import com.geekplus.webapp.tool.generator.CodeGenerateByTemplate;
 import com.geekplus.webapp.tool.generator.entity.TableColumnInfo;
 import com.geekplus.webapp.tool.generator.entity.TableInfo;
 import com.geekplus.webapp.tool.generator.service.GenCodeService;
+import com.geekplus.webapp.tool.generator.dto.GenPublishMenuRequest;
+import com.geekplus.webapp.tool.generator.service.GenMenuPublishService;
 import com.geekplus.webapp.tool.generator.service.GenTableColumnService;
 import com.github.pagehelper.PageInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,8 @@ public class GenCodeController extends BaseController {
     private GenCodeService genCodeService;
     @Resource
     private GenTableColumnService genTableColumnService;
+    @Resource
+    private GenMenuPublishService genMenuPublishService;
 
     /**
      * 查询所有非系统核心数据表
@@ -163,12 +167,17 @@ public class GenCodeController extends BaseController {
      */
     @Log(title = "代码生成", businessType = BusinessType.GENCODE)
     @GetMapping("/download/{tableName}")
-    public void downloadByTableSchema(HttpServletResponse response, @PathVariable("tableName") String tableName) {
+    public void downloadByTableSchema(HttpServletResponse response,
+                                      @PathVariable("tableName") String tableName,
+                                      @RequestParam(value = "uiType", defaultValue = "element") String uiType) {
         try {
+            CodeGenerateByTemplate.setUiType(uiType);
             List<Map<String, byte[]>> byStreamTemplate = genCodeService.downloadCode(tableName);
             FileCompressUtils.downloadZipStream(response, byStreamTemplate, "geekplus");
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            CodeGenerateByTemplate.clearUiType();
         }
     }
 
@@ -176,9 +185,16 @@ public class GenCodeController extends BaseController {
      * 生成预览代码，gen_table表格信息
      */
     @GetMapping("/previewCodeByGenTable/{tableId}")
-    public Result previewCodeByGenTable(HttpServletResponse response, @PathVariable Long tableId) {
-        TableInfo tableInfo = genCodeService.selectGenTableById(tableId);
-        return Result.success(genCodeService.previewCodeByTable(tableInfo));
+    public Result previewCodeByGenTable(HttpServletResponse response,
+                                        @PathVariable Long tableId,
+                                        @RequestParam(value = "uiType", defaultValue = "element") String uiType) {
+        try {
+            CodeGenerateByTemplate.setUiType(uiType);
+            TableInfo tableInfo = genCodeService.selectGenTableById(tableId);
+            return Result.success(genCodeService.previewCodeByTable(tableInfo));
+        } finally {
+            CodeGenerateByTemplate.clearUiType();
+        }
     }
 
     /**
@@ -186,10 +202,13 @@ public class GenCodeController extends BaseController {
      */
     @Log(title = "代码生成", businessType = BusinessType.GENCODE)
     @GetMapping("/downloadByGenTable/{tableIds}")
-    public void downloadByGenTable(HttpServletResponse response,@PathVariable Long[] tableIds)
+    public void downloadByGenTable(HttpServletResponse response,
+                                   @PathVariable Long[] tableIds,
+                                   @RequestParam(value = "uiType", defaultValue = "element") String uiType)
     {
         List<TableInfo> tableInfoList = genCodeService.selectGenTableByIds(tableIds);
         try {
+            CodeGenerateByTemplate.setUiType(uiType);
             List<Map<String,byte[]>> byStreamTemplate=null;
             if(tableInfoList.size()>1){
                 byStreamTemplate = genCodeService.downloadCodeByTable(tableInfoList);
@@ -199,7 +218,31 @@ public class GenCodeController extends BaseController {
             FileCompressUtils.downloadZipStream(response,byStreamTemplate,"geekplus");
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            CodeGenerateByTemplate.clearUiType();
         }
+    }
+
+    /**
+     * 发布菜单预览（元数据，不校验磁盘；代码请先 ZIP 下载合并）
+     */
+    @GetMapping("/table/publishMenuPreview/{tableId}")
+    public Result publishMenuPreview(@PathVariable Long tableId) {
+        return Result.success(genMenuPublishService.previewPublish(tableId));
+    }
+
+    /**
+     * 幂等发布菜单：同 component 不重复插入；事务写主菜单+按钮；审计见 @Log
+     */
+    @Log(title = "代码生成发布菜单", businessType = BusinessType.PUBLISH)
+    @PostMapping("/table/publishMenus")
+    public Result publishMenus(@RequestBody GenPublishMenuRequest request) {
+        com.geekplus.webapp.tool.generator.dto.GenPublishMenuResult result =
+                genMenuPublishService.publishMenus(request, getUsername());
+        log.info("代码生成菜单发布: operator={}, tableId={}, module={}, business={}, component={}, alreadyPublished={}",
+                getUsername(), request.getTableId(), result.getModuleName(), result.getBusinessName(),
+                result.getComponent(), result.isAlreadyPublished());
+        return Result.success(result);
     }
 
     /**

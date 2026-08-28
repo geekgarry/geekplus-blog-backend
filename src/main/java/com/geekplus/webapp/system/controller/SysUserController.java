@@ -378,15 +378,10 @@ public class SysUserController extends BaseController {
     @DataScope
     @GetMapping("/list")
     public PageDataInfo list(SysUser sysUser) {
+        // 部门树筛选会先查子孙部门；必须在 startPage 之前完成，否则 PageHelper 分页失效
+        sysUserService.prepareDeptFilter(sysUser);
         startPage();
         List<SysUser> list = sysUserService.selectSysUserList(sysUser);
-        //PageInfo pageInfo = new PageInfo(list);
-//        PageDataInfo rspData = new PageDataInfo();
-//        rspData.setCode(HttpStatus.SUCCESS);
-//        rspData.setMsg("查询成功");
-//        rspData.setRows(list);
-//        rspData.setTotal(new PageInfo(list).getTotal());
-        //直接调用公共方法
         return getDataTable(list);
     }
 

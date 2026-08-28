@@ -217,6 +217,25 @@ public class GeekPlusAppController extends BaseController {
         return Result.success(words);
     }
 
+    /**
+     * 【暂未启用】全站主题色 hex（sys_config: site.theme.color）
+     * 常见做法为 localStorage 按用户偏好；需要全站统一下发时再解开。
+     */
+    /*
+    @GetMapping("/getSiteThemeColor")
+    public Result getSiteThemeColor() {
+        try {
+            String color = sysConfigService.selectSysConfigByKey("site.theme.color");
+            if (StringUtils.hasText(color)) {
+                return Result.success(color.trim());
+            }
+        } catch (Exception e) {
+            log.warn("读取站点主题色失败: {}", e.getMessage());
+        }
+        return Result.success("");
+    }
+    */
+
     private List<String> parseClickTextConfig(String raw) {
         List<String> list = new ArrayList<>();
         if (raw.startsWith("[") && raw.endsWith("]")) {

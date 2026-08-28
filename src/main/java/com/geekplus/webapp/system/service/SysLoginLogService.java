@@ -3,6 +3,7 @@ package com.geekplus.webapp.system.service;
 import com.geekplus.webapp.system.entity.SysLoginLog;
 //import com.geekplus.core.Service;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -67,4 +68,9 @@ public interface SysLoginLogService {
      *清空表格所有数据 SysLoginLog
      */
     public void cleanTable();
+
+    /**
+     * 近 N 天按日统计登录次数
+     */
+    List<Map<String, Object>> countByDay(int days);
 }

@@ -86,6 +86,11 @@ public interface SysUserService {
     */
     public List<SysUser> selectSysUserList(SysUser sysUser);
 
+    /**
+     * 列表查询前展开部门过滤（须在 PageHelper.startPage 之前调用，避免子查询消费分页上下文）。
+     */
+    void prepareDeptFilter(SysUser sysUser);
+
     //通过密码和用户id查询
     SysUser selectSysUserByPassword(SysUser sysUser);
 

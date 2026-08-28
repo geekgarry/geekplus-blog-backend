@@ -53,6 +53,11 @@ public enum BusinessType
     GENCODE,
 
     /**
+     * 代码生成发布菜单（与 ZIP 解耦）
+     */
+    PUBLISH,
+
+    /**
      * 清空数据
      */
     CLEAN,

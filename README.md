@@ -30,7 +30,8 @@
 
 1. **内容服务**：文章 / 栏目 / 标签 / 评论 / 轮播 / 站点统计 / 文件中转等  
 2. **系统管理**：用户、角色、菜单权限、部门、字典、通知、日志、在线用户等  
-3. **扩展工具**：代码生成（Freemarker）、Quartz 定时任务、简历工具、AI 助手、WebSocket 推送等  
+3. **扩展工具**：代码生成（Freemarker，含 Element/Ant 双模板与动态条件查询）、Quartz 定时任务、简历工具、AI 助手、WebSocket 推送等  
+4. **列表动态条件**：`conditionsJson` → `DynamicQueryHelper` → MyBatis `DynamicWhere`（见 `docs/17-动态条件查询.md`）  
 
 前后端分离；默认登录密码为 `123456`（以库内数据为准）。
 

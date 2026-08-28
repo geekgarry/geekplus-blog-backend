@@ -112,6 +112,18 @@ public class SysOperLogServiceImpl implements SysOperLogService {
         return sysOperLogMapper.selectWebViewCount();
     }
 
+    @Override
+    public List<Map<String, Object>> countByDay(int days) {
+        int d = Math.min(Math.max(days, 1), 90);
+        return sysOperLogMapper.countByDay(d);
+    }
+
+    @Override
+    public List<Map<String, Object>> countByTitle(int days) {
+        int d = Math.min(Math.max(days, 1), 90);
+        return sysOperLogMapper.countByTitle(d);
+    }
+
     /**
      *清空表格所有数据 OperLog
      */

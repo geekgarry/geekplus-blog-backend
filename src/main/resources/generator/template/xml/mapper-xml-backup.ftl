@@ -31,28 +31,40 @@
     <select id="select${modelNameUpperCamel}List" parameterType="${modelNameUpperCamel}" resultMap="BaseResultMap">
         <include refid="baseSelectVo"/>
         <where>
-            <#if allColumn?exists>
-                <#list allColumn as column>
-                    <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
-                        AND ${column.columnName} = ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}
-                    </if>
-                </#list>
-            </#if>
+        <if test="params == null or params.dq == null or params.dq.size() == 0">
+        <#if allColumn?exists>
+        <#list allColumn as column>
+        <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
+         AND ${column.columnName} <#if column.javaType == 'String'>like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#else>= ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}</#if>
+        </if>
+        </#list>
+        </#if>
+        </if>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRange"/>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
         </where>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
     </select>
 
     <!--数据联合查询操作SQL(联合查询) javaType-->
     <select id="selectUnion${modelNameUpperCamel}List" parameterType="${modelNameUpperCamel}" resultMap="BaseResultMap">
         <include refid="select${modelNameUpperCamel}Vo"/>
         <where>
-            <#if allColumn?exists>
-                <#list allColumn as column>
-                    <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
-                        AND ${tableAlias}.${column.columnName} = ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}
-                    </if>
-                </#list>
-            </#if>
+        <if test="params == null or params.dq == null or params.dq.size() == 0">
+        <#if allColumn?exists>
+        <#list allColumn as column>
+        <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
+         AND ${tableAlias}.${column.columnName} <#if column.javaType == 'String'>like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#else>= ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}</#if>
+        </if>
+        </#list>
+        </#if>
+        </if>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRangeAliased"/>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
         </where>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
     </select>
 
     <!--单条数据或详情查询操作SQL-->

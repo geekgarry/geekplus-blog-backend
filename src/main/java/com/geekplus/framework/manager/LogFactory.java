@@ -1,11 +1,11 @@
 package com.geekplus.framework.manager;
 
-import cn.hutool.extra.spring.SpringUtil;
 import com.geekplus.common.constant.Constant;
 import com.geekplus.common.util.LogUtil;
+import com.geekplus.common.util.http.IPUtils;
 import com.geekplus.common.util.http.IpAddressUtil;
 import com.geekplus.common.util.http.ServletUtil;
-import com.geekplus.common.util.http.IPUtils;
+import com.geekplus.common.util.spring.SpringUtil;
 import com.geekplus.webapp.system.entity.SysLoginLog;
 import com.geekplus.webapp.system.entity.SysOperLog;
 import com.geekplus.webapp.system.service.SysLoginLogService;

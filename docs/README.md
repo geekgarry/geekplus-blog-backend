@@ -26,6 +26,9 @@
 | **11** | [11-简历工具AI扩展-解析分析岗位搜索PPT.md](./11-简历工具AI扩展-解析分析岗位搜索PPT.md) | 简历附件解析修复；岗位分析/搜索/PPT API 契约 |
 | **13** | [13-文件管理大文本读取优化.md](./13-文件管理大文本读取优化.md) | read-text 限长/限体积；前端原生 textarea 避免大文本卡顿 |
 | **14** | [14-骨架屏识别API.md](./14-骨架屏识别API.md) | P2 URL 抓取 / P3 图片 AI → 骨架 Schema 契约 |
+| **15** | [15-代码生成发布菜单.md](./15-代码生成发布菜单.md) | ZIP 与发布解耦；幂等菜单、事务、审计 |
+| **16** | [16-代码生成双前端模板-uiType.md](./16-代码生成双前端模板-uiType.md) | Element / Ant Design Vue 双模板；`uiType`；antd 动态条件；Bootstrap HTML 静态页 |
+| **17** | [17-动态条件查询.md](./17-动态条件查询.md) | BaseEntity.conditionsJson + DynamicQueryHelper + MyBatis 公共片段；用户列表已接入 |
 
 ---
 

@@ -213,4 +213,13 @@
     <update id="cleanTable">
         truncate table sys_login_log
     </update>
+
+    <!-- 控制台：近 N 天每日登录次数 -->
+    <select id="countByDay" resultType="map">
+        SELECT DATE_FORMAT(log_time, '%Y-%m-%d') AS `date`, COUNT(*) AS `count`
+        FROM sys_login_log
+        WHERE log_time &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+        GROUP BY DATE_FORMAT(log_time, '%Y-%m-%d')
+        ORDER BY `date` ASC
+    </select>
 </mapper>

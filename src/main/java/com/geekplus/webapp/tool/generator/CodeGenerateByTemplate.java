@@ -44,6 +44,37 @@ public class CodeGenerateByTemplate {
     private static final String CURRENT_DATE = new SimpleDateFormat("yyyy/MM/dd").format(new Date());//@date
     private static final String DOWNLOAD_FILE_NAME="geekplus.zip";
 
+    /** 前端 UI 类型：element（默认）| antd，影响 Vue 页面模板选择 */
+    private static final ThreadLocal<String> UI_TYPE_HOLDER = new ThreadLocal<>();
+
+    public static void setUiType(String uiType) {
+        UI_TYPE_HOLDER.set(normalizeUiType(uiType));
+    }
+
+    public static String getUiType() {
+        return normalizeUiType(UI_TYPE_HOLDER.get());
+    }
+
+    public static void clearUiType() {
+        UI_TYPE_HOLDER.remove();
+    }
+
+    public static String normalizeUiType(String uiType) {
+        if (uiType == null || uiType.trim().isEmpty()) {
+            return "element";
+        }
+        String t = uiType.trim().toLowerCase();
+        if ("antd".equals(t) || "ant".equals(t) || "ant-design-vue".equals(t) || "antdv".equals(t)) {
+            return "antd";
+        }
+        return "element";
+    }
+
+    /** 按 UI 类型选择 Vue 模板文件名 */
+    public static String resolveVueTemplateName() {
+        return "antd".equals(getUiType()) ? "vue-antd.ftl" : "vue.ftl";
+    }
+
     /**
      * 生成Java文件
      * @param fileName
@@ -266,6 +297,7 @@ public class CodeGenerateByTemplate {
         String vueJsFileName=table.getBusinessName();//业务名，也是vueName
         String moduleName=table.getModuleName();//模块名
         Map<String,Object> templateObject=getTemplateObject(table);
+        templateObject.put("uiType", getUiType());
         try {
             for (Template template : templateList()) {
                 StringWriter writer = new StringWriter();
@@ -371,6 +403,7 @@ public class CodeGenerateByTemplate {
         Configuration configVue = getVueConfiguration();
         Configuration configJs = getJsConfiguration();
         Configuration configSql = getSqlConfiguration();
+        //Configuration configHtml = getHtmlConfiguration();
         List<Template> templates = new ArrayList<>();
         /**
          * 加载模板
@@ -387,12 +420,14 @@ public class CodeGenerateByTemplate {
         templates.add(configJava.getTemplate("controller.ftl"));
         // 6.mapperXml
         templates.add(configXml.getTemplate("mapper-xml.ftl"));
-        // 7.Vue页面
-        templates.add(configVue.getTemplate("vue.ftl"));
+        // 7.Vue页面（element → vue.ftl；antd → vue-antd.ftl）
+        templates.add(configVue.getTemplate(resolveVueTemplateName()));
         // 8.Vue的Js文件
         templates.add(configJs.getTemplate("vue-js.ftl"));
         // 9.菜单权限sql文件
         templates.add(configSql.getTemplate("sql.ftl"));
+        // 10.Bootstrap + AJAX 静态页（与 Vue 同形态的动态条件 CRUD）
+        //templates.add(configHtml.getTemplate("index.ftl"));
         return templates;
     }
 
@@ -596,6 +631,7 @@ public class CodeGenerateByTemplate {
         String moduleName=table.getModuleName();//模块名
         String fileS=File.separator;
         Map<String,Object> templateObject=getTemplateObject(table);
+        templateObject.put("uiType", getUiType());
         //1.mapper 这些是创建生成文件的目录PROJECT_PATH+
         String mapperPath=JAVA_PATH+GenUtil.packageConvertPath(table.getPackageName()+".mapper");
         //createDir(mapperPath);
@@ -622,6 +658,7 @@ public class CodeGenerateByTemplate {
             Configuration configVue = getVueConfiguration();
             Configuration configJs = getJsConfiguration();
             Configuration configSql = getSqlConfiguration();
+            //Configuration configHtml = getHtmlConfiguration();
             // 1.mapper 这些是生成代码文件
             String mapperName = mapperPath + File.separatorChar + javaClassName + "Mapper.java";
             Template template1 = configJava.getTemplate("mapper.ftl");
@@ -699,7 +736,7 @@ public class CodeGenerateByTemplate {
             /**
              * 加载模板
              */
-            Template template7 = configVue.getTemplate("vue.ftl");
+            Template template7 = configVue.getTemplate(resolveVueTemplateName());
             template7.process(templateObject, writer);
             /**
              * 将数据读取到缓冲区中，再将缓冲区中数据传输出去
@@ -744,6 +781,17 @@ public class CodeGenerateByTemplate {
             compressByte9.put(sqlFileName,bytes9);
             compressByteList.add(compressByte9);
             outputStream.reset();
+            //writer.flush();
+            // 10.Bootstrap + AJAX 静态页（与 Vue 同形态动态条件 CRUD）
+            //String htmlPath = "/html/" + moduleName;
+            //String htmlFileName = htmlPath + File.separatorChar + vueJsFileName + File.separatorChar + "index.html";
+            //Template template10 = configHtml.getTemplate("index.ftl");
+            //template10.process(templateObject, writer);
+            //byte[] bytes10 = outputStream.toByteArray();
+            //Map<String, byte[]> compressByte10 = new HashMap<>();
+            //compressByte10.put(htmlFileName, bytes10);
+            //compressByteList.add(compressByte10);
+            //outputStream.reset();
             //FileCompressUtils.downloadZipStream(response,compressByteList,"geekplus");
             //FileCompressUtils.genCode(response,compressByteList);
             writer.close();
@@ -918,6 +966,15 @@ public class CodeGenerateByTemplate {
         cfg.setClassForTemplateLoading(CodeGenerateByTemplate.class,ProjectConstant.SQL_TEMPLATE_PATH);
         cfg.setDefaultEncoding("UTF-8");
         //cfg.setTemplateExceptionHandler(TemplateExceptionHandler.IGNORE_HANDLER);
+        cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+        cfg.setCacheStorage(new freemarker.cache.MruCacheStorage(20, 250));
+        return cfg;
+    }
+
+    private static Configuration getHtmlConfiguration() throws IOException {
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);
+        cfg.setClassForTemplateLoading(CodeGenerateByTemplate.class, ProjectConstant.HTML_TEMPLATE_PATH);
+        cfg.setDefaultEncoding("UTF-8");
         cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
         cfg.setCacheStorage(new freemarker.cache.MruCacheStorage(20, 250));
         return cfg;

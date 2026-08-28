@@ -118,7 +118,7 @@
         left join sys_role sr on sr.role_id = sur.role_id
     </sql>
 
-    <!--数据查询操作SQL(非联合查询)；deptIdList 优先于单 deptId；params.dataScope 由 DataScopeAspect 注入-->
+    <!--数据查询操作SQL(非联合查询)；deptIdList 优先于单 deptId；params.dataScope 由 DataScopeAspect 注入；有 params.dq 时由 DynamicWhere 拼接-->
     <select id="selectSysUserList" parameterType="SysUser" resultMap="BaseResultMap">
         <include refid="baseSelectVo"/>
         <where>
@@ -136,32 +136,35 @@
                     AND dept_id = #{deptId}
                 </when>
             </choose>
-            <if test="username !=null and username != ''">
-                AND username = #{username}
-            </if>
-            <if test="nickname !=null">
-                AND nickname = #{nickname}
-            </if>
-            <if test="userType !=null">
-                AND user_type = #{userType}
-            </if>
-            <if test="email !=null and email != ''">
-                AND email = #{email}
-            </if>
-            <if test="phoneNumber !=null and phoneNumber != ''">
-                AND phone_number = #{phoneNumber}
-            </if>
-            <if test="gender !=null">
-                AND gender = #{gender}
+            <!-- 无动态条件时：兼容旧扁平筛选项；有 params.dq 时由 DynamicWhere 拼接 -->
+            <if test="params == null or params.dq == null or params.dq.size() == 0">
+                <if test="username !=null and username != ''">
+                    AND username like concat('%', #{username}, '%')
+                </if>
+                <if test="nickname !=null and nickname != ''">
+                    AND nickname like concat('%', #{nickname}, '%')
+                </if>
+                <if test="userType !=null">
+                    AND user_type = #{userType}
+                </if>
+                <if test="email !=null and email != ''">
+                    AND email like concat('%', #{email}, '%')
+                </if>
+                <if test="phoneNumber !=null and phoneNumber != ''">
+                    AND phone_number like concat('%', #{phoneNumber}, '%')
+                </if>
+                <if test="gender !=null">
+                    AND gender = #{gender}
+                </if>
+                <if test="status !=null">
+                    AND status = #{status}
+                </if>
             </if>
             <if test="avatar !=null">
                 AND avatar = #{avatar}
             </if>
             <if test="password !=null">
                 AND password = #{password}
-            </if>
-            <if test="status !=null">
-                AND status = #{status}
             </if>
             <if test="delFlag !=null">
                 AND del_flag = #{delFlag}
@@ -187,9 +190,13 @@
             <if test="remark !=null">
                 AND remark = #{remark}
             </if>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRange"/>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
             <!-- 数据范围过滤（切面写入 params.dataScope，空串无影响） -->
             ${params.dataScope}
         </where>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
     </select>
 
     <!--通过用户密码和用户id查询是否存在-->
@@ -253,7 +260,7 @@
         </where>
     </select>
 
-    <!--数据联合查询操作SQL(联合查询)-->
+    <!--数据联合查询操作SQL(联合查询)；有 params.dq 时由 DynamicWhere 拼接-->
     <select id="selectUnionSysUserList" parameterType="SysUser" resultMap="BaseResultMap">
         <include refid="selectSysUserVo"/>
         <where>
@@ -271,23 +278,28 @@
                     AND su.dept_id = #{deptId}
                 </when>
             </choose>
-            <if test="username !=null">
-                AND su.username = #{username}
-            </if>
-            <if test="nickname !=null">
-                AND su.nickname = #{nickname}
-            </if>
-            <if test="userType !=null">
-                AND su.user_type = #{userType}
-            </if>
-            <if test="email !=null">
-                AND su.email = #{email}
-            </if>
-            <if test="phoneNumber !=null">
-                AND su.phone_number = #{phoneNumber}
-            </if>
-            <if test="gender !=null">
-                AND su.gender = #{gender}
+            <if test="params == null or params.dq == null or params.dq.size() == 0">
+                <if test="username !=null and username != ''">
+                    AND su.username like concat('%', #{username}, '%')
+                </if>
+                <if test="nickname !=null and nickname != ''">
+                    AND su.nickname like concat('%', #{nickname}, '%')
+                </if>
+                <if test="userType !=null">
+                    AND su.user_type = #{userType}
+                </if>
+                <if test="email !=null and email != ''">
+                    AND su.email like concat('%', #{email}, '%')
+                </if>
+                <if test="phoneNumber !=null and phoneNumber != ''">
+                    AND su.phone_number like concat('%', #{phoneNumber}, '%')
+                </if>
+                <if test="gender !=null">
+                    AND su.gender = #{gender}
+                </if>
+                <if test="status !=null">
+                    AND su.status = #{status}
+                </if>
             </if>
             <if test="avatar !=null">
                 AND su.avatar = #{avatar}
@@ -295,11 +307,8 @@
             <if test="password !=null">
                 AND su.password = #{password}
             </if>
-            <if test="status !=null">
-                AND su.status = #{status}
-            </if>
             <if test="delFlag !=null">
-                AND del_flag = #{delFlag}
+                AND su.del_flag = #{delFlag}
             </if>
             <if test="loginIp !=null">
                 AND su.login_ip = #{loginIp}
@@ -322,9 +331,13 @@
             <if test="remark !=null">
                 AND su.remark = #{remark}
             </if>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRangeAliased"/>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
             <!-- 数据范围过滤 -->
             ${params.dataScope}
         </where>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
     </select>
 
     <!--单条数据或详情查询操作SQL-->

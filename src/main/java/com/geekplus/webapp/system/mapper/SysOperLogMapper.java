@@ -2,6 +2,7 @@ package com.geekplus.webapp.system.mapper;
 
 import com.geekplus.webapp.system.entity.SysOperLog;
 import org.apache.ibatis.annotations.MapKey;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.HashMap;
 import java.util.List;
@@ -76,4 +77,14 @@ public interface SysOperLogMapper {
      *清空表格所有数据 OperLog
      */
     void cleanTable();
+
+    /**
+     * 近 N 天按日统计操作次数
+     */
+    List<Map<String, Object>> countByDay(@Param("days") int days);
+
+    /**
+     * 近 N 天按模块(title)统计操作次数
+     */
+    List<Map<String, Object>> countByTitle(@Param("days") int days);
 }

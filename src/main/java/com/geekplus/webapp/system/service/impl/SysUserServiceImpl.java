@@ -1,6 +1,7 @@
 package com.geekplus.webapp.system.service.impl;
 
 import com.geekplus.common.core.text.Convert;
+import com.geekplus.common.query.DynamicQueryHelper;
 import com.geekplus.framework.web.exception.BusinessException;
 import com.geekplus.common.util.encrypt.EncryptUtil;
 import com.geekplus.common.util.string.StringUtils;
@@ -131,12 +132,19 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-    * 查询全部（无表别名；DataScope 由 Controller 写入 params）
+    * 查询全部（无表别名；DataScope 由 Controller 写入 params；含 conditionsJson 动态条件）
     */
     @Override
     public List<SysUser> selectSysUserList(SysUser sysUser){
         expandDeptIdFilter(sysUser);
+        DynamicQueryHelper.prepare(sysUser);
+        DynamicQueryHelper.applyKeywordColumns(sysUser, "username", "nickname", "phone_number", "email");
         return sysUserMapper.selectSysUserList(sysUser);
+    }
+
+    @Override
+    public void prepareDeptFilter(SysUser sysUser) {
+        expandDeptIdFilter(sysUser);
     }
 
     /**
@@ -145,6 +153,11 @@ public class SysUserServiceImpl implements SysUserService {
     private void expandDeptIdFilter(SysUser sysUser)
     {
         if (sysUser == null)
+        {
+            return;
+        }
+        // 已在 startPage 之前展开过（Controller.prepareDeptFilter）
+        if (sysUser.getDeptIdList() != null && !sysUser.getDeptIdList().isEmpty())
         {
             return;
         }
@@ -164,8 +177,9 @@ public class SysUserServiceImpl implements SysUserService {
                 }
             }
         }
-        // includeChildren=true 时按 ancestors 展开本部门及子孙（可与 deptIds 合并）
-        if (Boolean.TRUE.equals(sysUser.getIncludeChildren()) && sysUser.getDeptId() != null)
+        // 前端已传 deptIds（含子孙）时不再查库，避免与 PageHelper 分页冲突
+        if (Boolean.TRUE.equals(sysUser.getIncludeChildren()) && sysUser.getDeptId() != null
+                && StringUtils.isEmpty(sysUser.getDeptIds()))
         {
             Long rootId = sysUser.getDeptId().longValue();
             idSet.add(rootId);
@@ -196,11 +210,13 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-    * 联合查询用户列表（Mapper 使用表别名 su）。
+    * 联合查询用户列表（Mapper 使用表别名 su；含 conditionsJson 动态条件）。
     */
     @Override
     public List<SysUser> selectUnionSysUserList(SysUser sysUser){
         expandDeptIdFilter(sysUser);
+        DynamicQueryHelper.prepare(sysUser, "su");
+        DynamicQueryHelper.applyKeywordColumns(sysUser, "su.username", "su.nickname", "su.phone_number", "su.email");
         return sysUserMapper.selectUnionSysUserList(sysUser);
     }
 

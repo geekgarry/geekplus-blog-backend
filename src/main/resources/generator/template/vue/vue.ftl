@@ -1,36 +1,15 @@
 <template>
     <div class="app-container">
-        <el-form :model="queryParams" ref="queryForm" :inline="true" v-show="showSearch" label-width="68px">
-            <#if allColumn?exists>
-            <#list allColumn as column>
-            <#if (column.columnDataType=='varchar'||column.columnDataType=='char') && column.isPk!='1' >
-            <el-form-item label="${column.columnComment}" prop="${column.smallColumnName}">
-                <el-input
-                    v-model="queryParams.${column.smallColumnName}"
-                    placeholder="请输入${column.columnComment}"
-                    clearable
-                    size="small"
-                    @keyup.enter.native="handleQuery"
-                />
-            </el-form-item>
-            <#elseif (column.columnDataType=='int'||column.columnDataType=='tinyint'||column.columnDataType=='smallint'||column.columnDataType=='bigint') && column.isPk!='1' >
-            <el-form-item label="${column.columnComment}" prop="${column.smallColumnName}">
-                <el-input
-                    v-model="queryParams.${column.smallColumnName}"
-                    placeholder="请输入${column.columnComment}"
-                    clearable
-                    size="small"
-                    @keyup.enter.native="handleQuery"
-                />
-            </el-form-item>
-            </#if>
-            </#list>
-            </#if>
-            <el-form-item>
-                <el-button type="cyan" icon="el-icon-search" size="mini" @click="handleQuery">搜索</el-button>
-                <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
-            </el-form-item>
-        </el-form>
+        <div v-show="showSearch" class="mb8">
+            <dynamic-query-form
+                ref="dynamicQuery"
+                :fields="queryFields"
+                :default-rows="2"
+                :initial-conditions="queryInitial"
+                @search="onDynamicSearch"
+                @reset="onDynamicReset"
+            />
+        </div>
 
         <el-row :gutter="10" class="mb8">
             <el-col :span="1.5">
@@ -123,19 +102,13 @@
                             <el-input v-model="form.${column.smallColumnName}" placeholder="请输入${column.columnComment}" />
                         </el-form-item>
                     </el-col>
-                    <#elseif (column.columnDataType=='tinyint'||column.columnDataType=='smallint') && column.isPk!='1' >
+                    <#elseif (column.columnDataType=='int'||column.columnDataType=='tinyint'||column.columnDataType=='smallint'||column.columnDataType=='bigint') && column.isPk!='1' >
                     <el-col :span="12">
                         <el-form-item label="${column.columnComment}" prop="${column.smallColumnName}">
                             <el-select v-model="form.${column.smallColumnName}" placeholder="请选择">
                                 <el-option label="Label1" value="1"></el-option>
                                 <el-option label="Label2" value="2"></el-option>
                             </el-select>
-                        </el-form-item>
-                    </el-col>
-                    <#elseif (column.columnDataType=='int'||column.columnDataType=='bigint') && column.isPk!='1' >
-                    <el-col :span="12">
-                        <el-form-item label="${column.columnComment}" prop="${column.smallColumnName}">
-                            <el-input-number v-model="form.${column.smallColumnName}" :min="1" :max="999" label="请输入${column.columnComment}" clearable size="small"></el-input-number>
                         </el-form-item>
                     </el-col>
                     <#elseif (column.columnDataType=='text'||column.columnDataType=='tinytext'||column.columnDataType=='bigtext'||column.columnDataType=='longtext') && column.isPk!='1' >
@@ -166,9 +139,12 @@
 </template>
 
 <script>
+import DynamicQueryForm, { buildDynamicQueryParams } from "@/components/DynamicQueryForm";
+
 import { list${className}, get${className}, del${className}, add${className}, update${className}, export${className} } from "@/api/${moduleName}/${jsMethodName}";
 
 export default {
+    components: { DynamicQueryForm },
     name: "${componentName}",
     data() {
         return {
@@ -194,10 +170,31 @@ export default {
             statusOptions: [],
             // 状态数据字典
             typeOptions: [],
+
+            queryFields: [
+<#if allColumn?exists>
+<#list allColumn as column>
+<#if column.isPk!='1' && (column.columnDataType=='varchar'||column.columnDataType=='char'||column.columnDataType=='int'||column.columnDataType=='tinyint'||column.columnDataType=='bigint')>
+                { value: '${column.smallColumnName}', label: '${column.columnComment}' },
+</#if>
+</#list>
+</#if>
+            ],
+            queryInitial: [
+<#if allColumn?exists>
+<#list allColumn as column>
+<#if column.isPk!='1' && (column.columnDataType=='varchar'||column.columnDataType=='char')>
+                { field: '${column.smallColumnName}', op: 'like', value: undefined },
+<#break>
+</#if>
+</#list>
+</#if>
+            ],
             // 查询参数
             queryParams: {
             pageNum: 1,
             pageSize: 10,
+            conditionsJson: undefined,
             <#if allColumn?exists>
             <#list allColumn as column>
             ${column.smallColumnName}: undefined,
@@ -229,13 +226,24 @@ export default {
     },
     methods: {
         /** 分页查询数据列表 */
-        getList() {
+        getList(conditions) {
             this.loading = true;
-            list${className}(this.queryParams).then(response => {
+            const dyn = conditions || (this.$refs.dynamicQuery && this.$refs.dynamicQuery.getConditions()) || [];
+            const built = buildDynamicQueryParams(dyn, {}, { attachConditionsJson: true, attachFlat: true });
+            const req = Object.assign({}, this.queryParams, built);
+            list${className}(req).then(response => {
                 this.list = response.rows;
                 this.total = response.total;
                 this.loading = false;
             });
+        },
+        onDynamicSearch(conditions) {
+            this.queryParams.pageNum = 1;
+            this.getList(conditions);
+        },
+        onDynamicReset(conditions) {
+            this.queryParams.pageNum = 1;
+            this.getList(conditions);
         },
         // 取消按钮
         cancel() {
@@ -260,7 +268,8 @@ export default {
         },
         /** 重置按钮操作 */
         resetQuery() {
-            this.resetForm("queryForm");
+            if (this.$refs.dynamicQuery) this.$refs.dynamicQuery.resetConditions();
+            this.queryParams.conditionsJson = undefined;
             this.handleQuery();
         },
         // 多选框选中数据

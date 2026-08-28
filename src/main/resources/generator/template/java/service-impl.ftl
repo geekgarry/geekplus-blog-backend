@@ -1,5 +1,6 @@
 package ${basePackage}.webapp.${moduleName}.service.impl;
 
+import com.geekplus.common.query.DynamicQueryHelper;
 import ${basePackage}.webapp.${moduleName}.mapper.${modelNameUpperCamel}Mapper;
 import ${basePackage}.webapp.${moduleName}.entity.${modelNameUpperCamel};
 import ${basePackage}.webapp.${moduleName}.service.${modelNameUpperCamel}Service;
@@ -21,10 +22,11 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     private ${modelNameUpperCamel}Mapper ${modelNameLowerCamel}Mapper;
 
     /**
-    * 查询全部
+    * 查询全部（含动态条件 conditionsJson / 排序 / 时间区间）
     */
     @Override
     public List<${modelNameUpperCamel}> query${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel}){
+        DynamicQueryHelper.prepare(${modelNameLowerCamel});
         return ${modelNameLowerCamel}Mapper.select${modelNameUpperCamel}List(${modelNameLowerCamel});
     }
 
@@ -33,13 +35,13 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     */
     @Override
     public List<${modelNameUpperCamel}> queryUnion${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel}){
+        DynamicQueryHelper.prepare(${modelNameLowerCamel}, "${tableAlias!''}");
         return ${modelNameLowerCamel}Mapper.selectUnion${modelNameUpperCamel}List(${modelNameLowerCamel});
     }
 
     /**
     * 根据Id查询单条数据
     */
-    @Override
     public ${modelNameUpperCamel} query${modelNameUpperCamel}ById(${pkColumn.javaType} ${pkColumn.smallColumnName}){
         return ${modelNameLowerCamel}Mapper.select${modelNameUpperCamel}ById(${pkColumn.smallColumnName});
     }
@@ -49,7 +51,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * @param ${modelNameLowerCamel}
     * @return ${functionName}
     */
-    @Override
     public Integer add${modelNameUpperCamel}(${modelNameUpperCamel} ${modelNameLowerCamel}){
         return ${modelNameLowerCamel}Mapper.insert${modelNameUpperCamel}(${modelNameLowerCamel});
     }
@@ -59,7 +60,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * @param ${modelNameLowerCamel}List
     * @return ${functionName}
     */
-    @Override
     public Integer batchAdd${modelNameUpperCamel}List(List<${modelNameUpperCamel}> ${modelNameLowerCamel}List){
         return ${modelNameLowerCamel}Mapper.batchInsert${modelNameUpperCamel}List(${modelNameLowerCamel}List);
     }
@@ -68,7 +68,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * 删除
     * @param ${pkColumn.smallColumnName}
     */
-    @Override
     public Integer remove${modelNameUpperCamel}ById(${pkColumn.javaType} ${pkColumn.smallColumnName}){
         return ${modelNameLowerCamel}Mapper.delete${modelNameUpperCamel}ById(${pkColumn.smallColumnName});
     }
@@ -79,7 +78,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * 逻辑删除,更新删除标志字段
     * @param ${pkColumn.smallColumnName}
     */
-    @Override
     public Integer modifyDelFlagById(${pkColumn.javaType} ${pkColumn.smallColumnName}){
         return ${modelNameLowerCamel}Mapper.updateDelFlagById(${pkColumn.smallColumnName});
     }
@@ -89,7 +87,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     /**
     * 批量删除
     */
-    @Override
     public Integer remove${modelNameUpperCamel}ByIds(${pkColumn.javaType}[] ${pkColumn.smallColumnName}s){
         return ${modelNameLowerCamel}Mapper.delete${modelNameUpperCamel}ByIds(${pkColumn.smallColumnName}s);
     }
@@ -100,7 +97,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * 逻辑批量删除,更新删除标志字段
     * @param ${pkColumn.smallColumnName}s
     */
-    @Override
     public Integer modifyDelFlagByIds(${pkColumn.javaType}[] ${pkColumn.smallColumnName}s){
         return ${modelNameLowerCamel}Mapper.updateDelFlagByIds(${pkColumn.smallColumnName}s);
     }
@@ -111,7 +107,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * 修改
     * @param ${modelNameLowerCamel}
     */
-    @Override
     public Integer modify${modelNameUpperCamel}(${modelNameUpperCamel} ${modelNameLowerCamel}){
         return ${modelNameLowerCamel}Mapper.update${modelNameUpperCamel}(${modelNameLowerCamel});
     }
@@ -120,7 +115,6 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     * 批量修改某几个字段
     * @param ${pkColumn.smallColumnName}s
     */
-    @Override
     public Integer batchModify${modelNameUpperCamel}List(${pkColumn.javaType}[] ${pkColumn.smallColumnName}s){
         return ${modelNameLowerCamel}Mapper.batchUpdate${modelNameUpperCamel}List(${pkColumn.smallColumnName}s);
     }

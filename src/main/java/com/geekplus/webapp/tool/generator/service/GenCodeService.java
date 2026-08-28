@@ -139,6 +139,11 @@ public interface GenCodeService {
     public List<Map<String,byte[]>> downloadCodeByTable(List<TableInfo> tableInfoList);
 
     /**
+     * 合成 gen_table 与库表列信息（发布菜单、预览代码等使用）
+     */
+    TableInfo getTableInfoByGenTable(TableInfo tableInfo);
+
+    /**
      *清空表格所有数据 gen_table
      */
     public void cleanTable();

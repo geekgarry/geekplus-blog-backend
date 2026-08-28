@@ -2,6 +2,8 @@ package com.geekplus.webapp.system.mapper;
 
 import com.geekplus.webapp.system.entity.SysLoginLog;
 import java.util.List;
+import java.util.Map;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * 系统登录日志 系统登录日志
@@ -66,4 +68,9 @@ public interface SysLoginLogMapper {
      *清空表格所有数据 SysLoginLog
      */
     void cleanTable();
+
+    /**
+     * 近 N 天按日统计登录次数
+     */
+    List<Map<String, Object>> countByDay(@Param("days") int days);
 }

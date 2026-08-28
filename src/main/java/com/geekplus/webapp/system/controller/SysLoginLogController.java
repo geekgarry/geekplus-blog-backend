@@ -121,4 +121,12 @@ public class SysLoginLogController extends BaseController {
         ExcelUtil<SysLoginLog> util = new ExcelUtil<SysLoginLog>(SysLoginLog.class);
         return util.exportExcel(list, "sysLoginLog");
     }
+
+    /**
+     * 控制台：近 N 天每日登录次数（默认 7 天）
+     */
+    @GetMapping("/countByDay")
+    public Result countByDay(@RequestParam(defaultValue = "7") Integer days) {
+        return Result.success(sysLoginLogService.countByDay(days));
+    }
 }

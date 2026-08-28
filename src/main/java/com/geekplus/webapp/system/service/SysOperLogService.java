@@ -72,6 +72,16 @@ public interface SysOperLogService {
     List<Map<String,Object>> selectWebVisitorCount();
 
     /**
+     * 近 N 天按日统计操作次数
+     */
+    List<Map<String, Object>> countByDay(int days);
+
+    /**
+     * 近 N 天按模块统计操作次数
+     */
+    List<Map<String, Object>> countByTitle(int days);
+
+    /**
      *清空表格所有数据 OperLog
      */
     public void cleanTable();
