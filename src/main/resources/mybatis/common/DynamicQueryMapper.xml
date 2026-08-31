@@ -11,21 +11,51 @@
     <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
   </where>
   <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
+
+  params.dq：List&lt;QueryCondition&gt;。取值用 #{params.dq[${index}].value}。
+  valueType：date/datetime 走时间比较；text 的 like 走 concat；其余按 op 直接比较。
 -->
 <mapper namespace="com.geekplus.common.mybatis.DynamicQuery">
 
     <sql id="DynamicWhere">
-        <if test="params != null and params.dq != null and params.dq.size() &gt; 0">
-            <foreach collection="params.dq" item="c">
+        <if test="params != null and params['dq'] != null and params['dq'].size() &gt; 0">
+            <foreach collection="params['dq']" item="c" index="index">
                 <choose>
-                    <when test="c.op == 'eq'">AND ${c.column} = #{c.value}</when>
-                    <when test="c.op == 'ne'">AND ${c.column} &lt;&gt; #{c.value}</when>
-                    <when test="c.op == 'gt'">AND ${c.column} &gt; #{c.value}</when>
-                    <when test="c.op == 'ge'">AND ${c.column} &gt;= #{c.value}</when>
-                    <when test="c.op == 'lt'">AND ${c.column} &lt; #{c.value}</when>
-                    <when test="c.op == 'le'">AND ${c.column} &lt;= #{c.value}</when>
-                    <when test="c.op == 'like'">AND ${c.column} like concat('%', #{c.value}, '%')</when>
-                    <when test="c.op == 'notLike'">AND ${c.column} not like concat('%', #{c.value}, '%')</when>
+                    <!-- ===== 日期 / 日期时间：按日历日或直接比较 ===== -->
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'eq'">
+                        AND date_format(${c.column},'%Y-%m-%d') = date_format(#{params.dq[${index}].value},'%Y-%m-%d')
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'ne'">
+                        AND date_format(${c.column},'%Y-%m-%d') &lt;&gt; date_format(#{params.dq[${index}].value},'%Y-%m-%d')
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'gt'">
+                        AND ${c.column} &gt; #{params.dq[${index}].value}
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'ge'">
+                        AND ${c.column} &gt;= #{params.dq[${index}].value}
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'lt'">
+                        AND ${c.column} &lt; #{params.dq[${index}].value}
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'le'">
+                        AND ${c.column} &lt;= #{params.dq[${index}].value}
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'isNull'">
+                        AND ${c.column} is null
+                    </when>
+                    <when test="(c.valueType == 'date' or c.valueType == 'datetime') and c.op == 'isNotNull'">
+                        AND ${c.column} is not null
+                    </when>
+
+                    <!-- ===== 通用（字符串 / 数字 / select / switch） ===== -->
+                    <when test="c.op == 'eq'">AND ${c.column} = #{params.dq[${index}].value}</when>
+                    <when test="c.op == 'ne'">AND ${c.column} &lt;&gt; #{params.dq[${index}].value}</when>
+                    <when test="c.op == 'gt'">AND ${c.column} &gt; #{params.dq[${index}].value}</when>
+                    <when test="c.op == 'ge'">AND ${c.column} &gt;= #{params.dq[${index}].value}</when>
+                    <when test="c.op == 'lt'">AND ${c.column} &lt; #{params.dq[${index}].value}</when>
+                    <when test="c.op == 'le'">AND ${c.column} &lt;= #{params.dq[${index}].value}</when>
+                    <when test="c.op == 'like'">AND ${c.column} like concat('%', #{params.dq[${index}].value}, '%')</when>
+                    <when test="c.op == 'notLike'">AND ${c.column} not like concat('%', #{params.dq[${index}].value}, '%')</when>
                     <when test="c.op == 'isNull'">AND ${c.column} is null</when>
                     <when test="c.op == 'isNotNull'">AND ${c.column} is not null</when>
                 </choose>
@@ -53,11 +83,14 @@
         </if>
     </sql>
 
-    <!-- searchValue + params.searchColumns（白名单列名列表） -->
+    <!--
+      仅当请求带 searchValue 且 Service 调用了 applyKeywordColumns 时生效。
+      与 conditionsJson / params.dq 无关。
+    -->
     <sql id="KeywordSearch">
         <if test="searchValue != null and searchValue != '' and params != null and params.searchColumns != null and params.searchColumns.size() &gt; 0">
             AND (
-            <foreach collection="params.searchColumns" item="col" separator=" OR ">
+            <foreach collection="params.searchColumns" item="col" index="index" separator=" OR ">
                 ${col} like concat('%', #{searchValue}, '%')
             </foreach>
             )

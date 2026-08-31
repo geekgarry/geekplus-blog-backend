@@ -48,7 +48,7 @@ public class BaseEntity implements Serializable {
     /**
      * 动态条件 JSON 数组字符串，例如：
      * {@code [{"field":"username","op":"like","value":"admin"}]}
-     * GET 友好；解析后写入 {@code params.dq}。
+     * 列表 POST 由 Controller 从 Map/query/Header 写入；prepare 后进入 params.dq。
      */
     private String conditionsJson;
 

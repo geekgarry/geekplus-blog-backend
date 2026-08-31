@@ -46,6 +46,8 @@ public class CodeGenerateByTemplate {
 
     /** 前端 UI 类型：element（默认）| antd，影响 Vue 页面模板选择 */
     private static final ThreadLocal<String> UI_TYPE_HOLDER = new ThreadLocal<>();
+    /** 查询模式：dynamic（动态条件，默认）| flat（扁平表单） */
+    private static final ThreadLocal<String> QUERY_MODE_HOLDER = new ThreadLocal<>();
 
     public static void setUiType(String uiType) {
         UI_TYPE_HOLDER.set(normalizeUiType(uiType));
@@ -59,6 +61,24 @@ public class CodeGenerateByTemplate {
         UI_TYPE_HOLDER.remove();
     }
 
+    public static void setQueryMode(String queryMode) {
+        QUERY_MODE_HOLDER.set(normalizeQueryMode(queryMode));
+    }
+
+    public static String getQueryMode() {
+        return normalizeQueryMode(QUERY_MODE_HOLDER.get());
+    }
+
+    public static void clearQueryMode() {
+        QUERY_MODE_HOLDER.remove();
+    }
+
+    /** 一次清干净生成上下文，避免 ThreadLocal 泄漏到后续请求 */
+    public static void clearGenerateContext() {
+        clearUiType();
+        clearQueryMode();
+    }
+
     public static String normalizeUiType(String uiType) {
         if (uiType == null || uiType.trim().isEmpty()) {
             return "element";
@@ -70,9 +90,29 @@ public class CodeGenerateByTemplate {
         return "element";
     }
 
-    /** 按 UI 类型选择 Vue 模板文件名 */
+    public static String normalizeQueryMode(String queryMode) {
+        if (queryMode == null || queryMode.trim().isEmpty()) {
+            return "dynamic";
+        }
+        String m = queryMode.trim().toLowerCase();
+        if ("flat".equals(m) || "simple".equals(m) || "form".equals(m)) {
+            return "flat";
+        }
+        return "dynamic";
+    }
+
+    /**
+     * 按 uiType × queryMode 选择 Vue 模板：
+     * element+dynamic→vue.ftl；element+flat→vue-flat.ftl；
+     * antd+dynamic→vue-antd.ftl；antd+flat→vue-antd-flat.ftl
+     */
     public static String resolveVueTemplateName() {
-        return "antd".equals(getUiType()) ? "vue-antd.ftl" : "vue.ftl";
+        boolean antd = "antd".equals(getUiType());
+        boolean flat = "flat".equals(getQueryMode());
+        if (antd) {
+            return flat ? "vue-antd-flat.ftl" : "vue-antd.ftl";
+        }
+        return flat ? "vue-flat.ftl" : "vue.ftl";
     }
 
     /**
@@ -288,113 +328,118 @@ public class CodeGenerateByTemplate {
     }
 
     /**
-     * 生成Java代码
-     * @param table
+     * 预览展示用文件名（勿直接用 template.getName() 的 *.ftl）
+     */
+    public static String resolvePreviewDisplayName(String templateName, TableInfo table) {
+        String name = templateName == null ? "" : templateName;
+        // Freemarker 可能返回带路径的名字
+        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+        if (slash >= 0) {
+            name = name.substring(slash + 1);
+        }
+        String className = table.getModelName() != null ? table.getModelName() : "Entity";
+        String businessName = table.getBusinessName() != null ? table.getBusinessName() : "api";
+        String moduleName = table.getModuleName() != null ? table.getModuleName() : "function";
+
+        if (name.contains("mapper-xml")) {
+            return className + "Mapper.xml";
+        }
+        if (name.contains("service-impl")) {
+            return className + "ServiceImpl.java";
+        }
+        if (name.startsWith("mapper") || name.contains("mapper.ftl")) {
+            return className + "Mapper.java";
+        }
+        if (name.startsWith("service") || name.contains("service.ftl")) {
+            return className + "Service.java";
+        }
+        if (name.contains("entity")) {
+            return className + ".java";
+        }
+        if (name.contains("controller")) {
+            return className + "Controller.java";
+        }
+        if (name.contains("vue-js")) {
+            return "api/" + moduleName + "/" + businessName + ".js";
+        }
+        if (name.startsWith("vue") || name.contains("vue-")) {
+            return "views/" + moduleName + "/" + businessName + "/index.vue";
+        }
+        if (name.contains("sql")) {
+            return businessName + "Menu.sql";
+        }
+        if (name.contains("index") && name.endsWith(".ftl")) {
+            return "html/" + moduleName + "/" + businessName + "/index.html";
+        }
+        return name;
+    }
+
+    /**
+     * 生成预览代码：单模板失败不拖垮整表；前端 Vue/JS 等会一并返回。
      */
     public static List<Map<String,Object>> genPreviewCodeByTemplate(TableInfo table) {
         List<Map<String,Object>> codeMapList = new ArrayList<>();
-        String javaClassName=table.getModelName();
-        String vueJsFileName=table.getBusinessName();//业务名，也是vueName
-        String moduleName=table.getModuleName();//模块名
-        Map<String,Object> templateObject=getTemplateObject(table);
-        templateObject.put("uiType", getUiType());
+        Map<String,Object> templateObject;
         try {
-            for (Template template : templateList()) {
+            templateObject = getTemplateObject(table);
+            templateObject.put("uiType", getUiType());
+            templateObject.put("queryMode", getQueryMode());
+        } catch (Exception e) {
+            log.error("预览组装模板数据失败，表={}", table != null ? table.getTableName() : null, e);
+            return codeMapList;
+        }
+
+        List<Template> templates = loadPreviewTemplates();
+        for (Template template : templates) {
+            String tplName = template.getName();
+            try {
                 StringWriter writer = new StringWriter();
                 template.process(templateObject, writer);
                 Map<String, Object> map = new HashMap<>();
-                map.put("fileName", template.getName());
+                map.put("fileName", resolvePreviewDisplayName(tplName, table));
+                map.put("templateName", tplName);
                 map.put("fileContent", writer.toString());
                 codeMapList.add(map);
+            } catch (Exception e) {
+                log.error("预览渲染失败 template={} table={}", tplName, table.getTableName(), e);
+                Map<String, Object> map = new HashMap<>();
+                map.put("fileName", resolvePreviewDisplayName(tplName, table));
+                map.put("templateName", tplName);
+                map.put("fileContent",
+                        "/* 该模板预览生成失败，请检查表字段/主键配置与模板语法 */\n/* "
+                                + tplName + " */\n/* " + e.getMessage() + " */\n");
+                codeMapList.add(map);
             }
-            // 1.mapper 这些是生成代码文件
-//            Template template1 = configJava.getTemplate("mapper.ftl");
-//            template1.process(templateObject, writer);
-//            Map<String, Object> map1 = new HashMap<>();
-//            map1.put("fileName", javaClassName + "Mapper.java");
-//            map1.put("fileContent", writer.toString());
-//            codeMapList.add(map1);
-//            writer.flush();
-//            // 2.service
-//            Template template2 = configJava.getTemplate("service.ftl");
-//            template2.process(templateObject, writer);
-//            Map<String, Object> map2 = new HashMap<>();
-//            map2.put("fileName", javaClassName + "Service.java");
-//            map2.put("fileContent", writer.toString());
-//            codeMapList.add(map2);
-//            writer.flush();
-//            // 3.serviceImpl
-//            Template template3 = configJava.getTemplate("service-impl.ftl");
-//            template3.process(templateObject, writer);
-//            Map<String, Object> map3 = new HashMap<>();
-//            map3.put("fileName", javaClassName + "ServiceImpl.java");
-//            map3.put("fileContent", writer.toString());
-//            codeMapList.add(map3);
-//            writer.flush();
-//            // 4.model
-//            Template template4 = configJava.getTemplate("entity.ftl");
-//            template4.process(templateObject, writer);
-//            Map<String, Object> map4 = new HashMap<>();
-//            map4.put("fileName", javaClassName + ".java");
-//            map4.put("fileContent", writer.toString());
-//            codeMapList.add(map4);
-//            writer.flush();
-//            // 5.controller
-//            Template template5 = configJava.getTemplate("controller.ftl");
-//            template5.process(templateObject, writer);
-//            Map<String, Object> map5 = new HashMap<>();
-//            map5.put("fileName", javaClassName + "Controller.java");
-//            map5.put("fileContent", writer.toString());
-//            codeMapList.add(map5);
-//            writer.flush();
-//            // 6.mapperXml
-//            /**
-//             * 加载模板
-//             */
-//            Template template6 = configXml.getTemplate("mapper-xml.ftl");
-//            template6.process(templateObject, writer);
-//            Map<String, Object> map6 = new HashMap<>();
-//            map6.put("fileName", javaClassName + "Mapper.xml");
-//            map6.put("fileContent", writer.toString());
-//            codeMapList.add(map6);
-//            writer.flush();
-//            // 7.Vue页面
-//            /**
-//             * 加载模板
-//             */
-//            Template template7 = configVue.getTemplate("vue.ftl");
-//            template7.process(templateObject, writer);
-//            Map<String, Object> map7 = new HashMap<>();
-//            map7.put("fileName", "index.vue");
-//            map7.put("fileContent", writer.toString());
-//            codeMapList.add(map7);
-//            writer.flush();
-//            // 8.Vue的Js文件
-//            /**
-//             * 加载模板
-//             */
-//            Template template8 = configJs.getTemplate("vue-js.ftl");
-//            template8.process(templateObject, writer);
-//            Map<String, Object> map8 = new HashMap<>();
-//            map8.put("fileName", vueJsFileName + ".js");
-//            map8.put("fileContent", writer.toString());
-//            codeMapList.add(map8);
-//            writer.flush();
-//            // 9.菜单权限sql文件
-//            /**
-//             * 加载模板
-//             */
-//            Template template9 = configSql.getTemplate("sql.ftl");
-//            template9.process(templateObject, writer);
-//            Map<String, Object> map9 = new HashMap<>();
-//            map9.put("fileName", vueJsFileName + ".sql");
-//            map9.put("fileContent", writer.toString());
-//            codeMapList.add(map9);
-//            writer.close();
-        }catch (Exception e) {
-            e.printStackTrace();
         }
         return codeMapList;
+    }
+
+    /** 逐个加载模板，避免某一个缺失导致整表无法预览 */
+    private static List<Template> loadPreviewTemplates() {
+        List<Template> templates = new ArrayList<>();
+        tryAddTemplate(templates, () -> getJavaConfiguration().getTemplate("mapper.ftl"));
+        tryAddTemplate(templates, () -> getJavaConfiguration().getTemplate("service.ftl"));
+        tryAddTemplate(templates, () -> getJavaConfiguration().getTemplate("service-impl.ftl"));
+        tryAddTemplate(templates, () -> getJavaConfiguration().getTemplate("entity.ftl"));
+        tryAddTemplate(templates, () -> getJavaConfiguration().getTemplate("controller.ftl"));
+        tryAddTemplate(templates, () -> getMapperXmlConfiguration().getTemplate("mapper-xml.ftl"));
+        tryAddTemplate(templates, () -> getVueConfiguration().getTemplate(resolveVueTemplateName()));
+        tryAddTemplate(templates, () -> getJsConfiguration().getTemplate("vue-js.ftl"));
+        tryAddTemplate(templates, () -> getSqlConfiguration().getTemplate("sql.ftl"));
+        tryAddTemplate(templates, () -> getHtmlConfiguration().getTemplate("index.ftl"));
+        return templates;
+    }
+
+    private interface TemplateSupplier {
+        Template get() throws Exception;
+    }
+
+    private static void tryAddTemplate(List<Template> list, TemplateSupplier supplier) {
+        try {
+            list.add(supplier.get());
+        } catch (Exception e) {
+            log.warn("加载代码模板失败: {}", e.getMessage());
+        }
     }
 
     public static List<Template> templateList() throws IOException {
@@ -403,7 +448,7 @@ public class CodeGenerateByTemplate {
         Configuration configVue = getVueConfiguration();
         Configuration configJs = getJsConfiguration();
         Configuration configSql = getSqlConfiguration();
-        //Configuration configHtml = getHtmlConfiguration();
+        Configuration configHtml = getHtmlConfiguration();
         List<Template> templates = new ArrayList<>();
         /**
          * 加载模板
@@ -427,7 +472,7 @@ public class CodeGenerateByTemplate {
         // 9.菜单权限sql文件
         templates.add(configSql.getTemplate("sql.ftl"));
         // 10.Bootstrap + AJAX 静态页（与 Vue 同形态的动态条件 CRUD）
-        //templates.add(configHtml.getTemplate("index.ftl"));
+        templates.add(configHtml.getTemplate("index.ftl"));
         return templates;
     }
 
@@ -632,6 +677,7 @@ public class CodeGenerateByTemplate {
         String fileS=File.separator;
         Map<String,Object> templateObject=getTemplateObject(table);
         templateObject.put("uiType", getUiType());
+        templateObject.put("queryMode", getQueryMode());
         //1.mapper 这些是创建生成文件的目录PROJECT_PATH+
         String mapperPath=JAVA_PATH+GenUtil.packageConvertPath(table.getPackageName()+".mapper");
         //createDir(mapperPath);
@@ -658,7 +704,7 @@ public class CodeGenerateByTemplate {
             Configuration configVue = getVueConfiguration();
             Configuration configJs = getJsConfiguration();
             Configuration configSql = getSqlConfiguration();
-            //Configuration configHtml = getHtmlConfiguration();
+            Configuration configHtml = getHtmlConfiguration();
             // 1.mapper 这些是生成代码文件
             String mapperName = mapperPath + File.separatorChar + javaClassName + "Mapper.java";
             Template template1 = configJava.getTemplate("mapper.ftl");
@@ -781,17 +827,17 @@ public class CodeGenerateByTemplate {
             compressByte9.put(sqlFileName,bytes9);
             compressByteList.add(compressByte9);
             outputStream.reset();
-            //writer.flush();
+            writer.flush();
             // 10.Bootstrap + AJAX 静态页（与 Vue 同形态动态条件 CRUD）
-            //String htmlPath = "/html/" + moduleName;
-            //String htmlFileName = htmlPath + File.separatorChar + vueJsFileName + File.separatorChar + "index.html";
-            //Template template10 = configHtml.getTemplate("index.ftl");
-            //template10.process(templateObject, writer);
-            //byte[] bytes10 = outputStream.toByteArray();
-            //Map<String, byte[]> compressByte10 = new HashMap<>();
-            //compressByte10.put(htmlFileName, bytes10);
-            //compressByteList.add(compressByte10);
-            //outputStream.reset();
+            String htmlPath = "/html/" + moduleName;
+            String htmlFileName = htmlPath + File.separatorChar + vueJsFileName + File.separatorChar + "index.html";
+            Template template10 = configHtml.getTemplate("index.ftl");
+            template10.process(templateObject, writer);
+            byte[] bytes10 = outputStream.toByteArray();
+            Map<String, byte[]> compressByte10 = new HashMap<>();
+            compressByte10.put(htmlFileName, bytes10);
+            compressByteList.add(compressByte10);
+            outputStream.reset();
             //FileCompressUtils.downloadZipStream(response,compressByteList,"geekplus");
             //FileCompressUtils.genCode(response,compressByteList);
             writer.close();
@@ -822,7 +868,9 @@ public class CodeGenerateByTemplate {
         map.put("tableAlias", GenUtil.getFirstChar(table.getTableName()));
         map.put("title", tableComment);
         map.put("author", table.getFunctionAuthor());
-        map.put("date", new SimpleDateFormat("yyyy/MM/dd").format(table.getCreateTime()));
+        // createTime 为空时用当前日期，避免预览整表失败
+        Date createTime = table.getCreateTime() != null ? table.getCreateTime() : new Date();
+        map.put("date", new SimpleDateFormat("yyyy/MM/dd").format(createTime));
         map.put("basePackage", table.getBasePackageName());
         map.put("baseRequestMapping", GenUtil.getRequestMapping(table.getTableName()));
         map.put("modelNameUpperCamel", table.getModelName());

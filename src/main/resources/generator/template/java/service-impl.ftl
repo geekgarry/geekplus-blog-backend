@@ -22,21 +22,13 @@ public class ${modelNameUpperCamel}ServiceImpl implements ${modelNameUpperCamel}
     private ${modelNameUpperCamel}Mapper ${modelNameLowerCamel}Mapper;
 
     /**
-    * 查询全部（含动态条件 conditionsJson / 排序 / 时间区间）
+    * 查询全部（别名列表 + 动态条件 / 排序 / 时间区间 / searchValue 多列 OR）
     */
     @Override
     public List<${modelNameUpperCamel}> query${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel}){
-        DynamicQueryHelper.prepare(${modelNameLowerCamel});
-        return ${modelNameLowerCamel}Mapper.select${modelNameUpperCamel}List(${modelNameLowerCamel});
-    }
-
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    @Override
-    public List<${modelNameUpperCamel}> queryUnion${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel}){
         DynamicQueryHelper.prepare(${modelNameLowerCamel}, "${tableAlias!''}");
-        return ${modelNameLowerCamel}Mapper.selectUnion${modelNameUpperCamel}List(${modelNameLowerCamel});
+        DynamicQueryHelper.applyKeywordColumns(${modelNameLowerCamel}<#if allColumn?exists><#list allColumn as column><#if column.javaType == 'String' && column.isPk!='1' && column.columnName != 'password' && column.smallColumnName != 'password' && column.columnName != 'create_by' && column.columnName != 'update_by' && (column.columnDataType == 'varchar' || column.columnDataType == 'char' || column.columnDataType == 'nvarchar' || column.columnDataType == 'nchar')>, "${tableAlias!''}.${column.columnName}"</#if></#list></#if>);
+        return ${modelNameLowerCamel}Mapper.select${modelNameUpperCamel}List(${modelNameLowerCamel});
     }
 
     /**

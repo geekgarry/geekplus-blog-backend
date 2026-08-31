@@ -65,7 +65,7 @@ public interface SysUserMapper {
     Integer batchUpdateSysUserList(Long[] userIds);
 
     /**
-    * 查询全部
+    * 查询全部（表别名 su）
     */
     List<SysUser> selectSysUserList(SysUser sysUser);
 
@@ -73,11 +73,6 @@ public interface SysUserMapper {
      * 查询全部
      */
     SysUser selectSysUserByPassword(SysUser sysUser);
-
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysUser> selectUnionSysUserList(SysUser sysUser);
 
     /**
     * 根据Id查询单条数据

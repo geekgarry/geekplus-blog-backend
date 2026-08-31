@@ -2,7 +2,6 @@ package com.geekplus.webapp.system.entity;
 
 import com.geekplus.common.annotation.Excel;
 import com.geekplus.common.domain.BaseEntity;
-import com.geekplus.common.query.DynamicQueryColumns;
 import com.geekplus.common.util.encrypt.SignatureUtil;
 import com.geekplus.common.util.string.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -10,11 +9,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 功能：系统用户表 对象:sys_user
@@ -22,29 +18,9 @@ import java.util.Map;
  * @author CodeGenerator
  * @date 2023/06/18
  */
-public class SysUser extends BaseEntity implements DynamicQueryColumns
+public class SysUser extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
-
-    /** 动态查询字段白名单：前端 field → SQL 列 */
-    private static final Map<String, String> DYNAMIC_QUERY_COLUMNS;
-    static {
-        Map<String, String> m = new LinkedHashMap<>();
-        m.put("username", "username");
-        m.put("nickname", "nickname");
-        m.put("phoneNumber", "phone_number");
-        m.put("email", "email");
-        m.put("status", "status");
-        m.put("userType", "user_type");
-        m.put("gender", "gender");
-        m.put("deptId", "dept_id");
-        DYNAMIC_QUERY_COLUMNS = Collections.unmodifiableMap(m);
-    }
-
-    @Override
-    public Map<String, String> dynamicQueryColumns() {
-        return DYNAMIC_QUERY_COLUMNS;
-    }
 
     /**
      * 系统用户表 系统用户表

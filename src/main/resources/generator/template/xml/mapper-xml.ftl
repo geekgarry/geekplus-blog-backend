@@ -13,49 +13,22 @@
     </resultMap>
 
     <!--${functionName}-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select <#if allColumn?exists>
-        <#list allColumn as column>${column.columnName}<#if allColumnCount != column.sort>,</#if></#list>
-        </#if> from ${tableName}
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+    <!-- 查询公共片段：表别名 ${tableAlias}（表名下划线段首字母，如 sys_user→su）；列表/详情共用 -->
     <sql id="select${modelNameUpperCamel}Vo">
         select <#if allColumn?exists>
         <#list allColumn as column>${tableAlias}.${column.columnName}<#if allColumnCount != column.sort>,</#if></#list>
         </#if> from ${tableName} ${tableAlias}
     </sql>
 
-    <!--数据查询操作SQL(非联合查询)-->
+    <!-- 列表唯一入口：别名查询；Service 须 prepare(entity, "${tableAlias}") -->
     <select id="select${modelNameUpperCamel}List" parameterType="${modelNameUpperCamel}" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="params == null or params.dq == null or params.dq.size() == 0">
-        <#if allColumn?exists>
-        <#list allColumn as column>
-        <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
-         AND ${column.columnName} <#if column.javaType == 'String'>like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#else>= ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}</#if>
-        </if>
-        </#list>
-        </#if>
-        </if>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRange"/>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
-        </where>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnion${modelNameUpperCamel}List" parameterType="${modelNameUpperCamel}" resultMap="BaseResultMap">
         <include refid="select${modelNameUpperCamel}Vo"/>
         <where>
-        <if test="params == null or params.dq == null or params.dq.size() == 0">
+        <if test="params == null or params['dq'] == null or params['dq'].size() == 0">
         <#if allColumn?exists>
         <#list allColumn as column>
         <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
-         AND ${tableAlias}.${column.columnName} <#if column.javaType == 'String'>like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#else>= ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}</#if>
+         AND <#if column.javaType == 'String'>${tableAlias}.${column.columnName} like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#elseif column.javaType == 'Date'>date_format(${tableAlias}.${column.columnName},'%Y-%m-%d') = date_format(${r'#'}{${column.smallColumnName?uncap_first}},'%Y-%m-%d')<#else>${tableAlias}.${column.columnName} = ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.jdbcType}}</#if>
         </if>
         </#list>
         </#if>
@@ -69,11 +42,11 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="select${modelNameUpperCamel}ById" parameterType="${pkColumn.javaType}" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="select${modelNameUpperCamel}Vo"/>
         where
         <#list allColumn as column>
         <#if column.isPk=='1'>
-        ${column.columnName} = ${r'#'}{${column.smallColumnName}}
+        ${tableAlias}.${column.columnName} = ${r'#'}{${column.smallColumnName}}
         </#if>
         </#list>
     </select>

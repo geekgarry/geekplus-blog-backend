@@ -7,55 +7,28 @@
 <mapper namespace="${basePackage}.webapp.${moduleName}.mapper.${modelNameUpperCamel}Mapper">
     <resultMap id="BaseResultMap" type="${basePackage}.webapp.${moduleName}.entity.${modelNameUpperCamel}">
         <#list allColumn as column>
-            <result property="${column.smallColumnName}" column="${column.columnName}" jdbcType="${column.dictType}" />
+        <result property="${column.smallColumnName}" column="${column.columnName}" jdbcType="${column.dictType}" />
         <#--jdbcType="${column.dictType}"-->
         </#list>
     </resultMap>
 
     <!--${functionName}-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select <#if allColumn?exists>
-            <#list allColumn as column>${column.columnName}<#if allColumnCount != column.sort>,</#if></#list>
-        </#if> from ${tableName}
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+    <!-- 查询公共片段：表别名 ${tableAlias}（表名下划线段首字母，如 sys_user→su）；列表/详情共用 -->
     <sql id="select${modelNameUpperCamel}Vo">
         select <#if allColumn?exists>
-            <#list allColumn as column>${tableAlias}.${column.columnName}<#if allColumnCount != column.sort>,</#if></#list>
+        <#list allColumn as column>${tableAlias}.${column.columnName}<#if allColumnCount != column.sort>,</#if></#list>
         </#if> from ${tableName} ${tableAlias}
     </sql>
 
-    <!--数据查询操作SQL(非联合查询)-->
+    <!-- 列表唯一入口：别名查询；Service 须 prepare(entity, "${tableAlias}") -->
     <select id="select${modelNameUpperCamel}List" parameterType="${modelNameUpperCamel}" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="params == null or params.dq == null or params.dq.size() == 0">
-        <#if allColumn?exists>
-        <#list allColumn as column>
-        <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
-         AND ${column.columnName} <#if column.javaType == 'String'>like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#else>= ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}</#if>
-        </if>
-        </#list>
-        </#if>
-        </if>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRange"/>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
-        </where>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnion${modelNameUpperCamel}List" parameterType="${modelNameUpperCamel}" resultMap="BaseResultMap">
         <include refid="select${modelNameUpperCamel}Vo"/>
         <where>
-        <if test="params == null or params.dq == null or params.dq.size() == 0">
+        <if test="params == null or params['dq'] == null or params['dq'].size() == 0">
         <#if allColumn?exists>
         <#list allColumn as column>
         <if test="${column.smallColumnName?uncap_first} !=null <#if column.javaType == 'String'> and ${column.smallColumnName?uncap_first} != ''</#if>">
-         AND ${tableAlias}.${column.columnName} <#if column.javaType == 'String'>like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#else>= ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.dictType}}</#if>
+         AND <#if column.javaType == 'String'>${tableAlias}.${column.columnName} like concat('%', ${r'#'}{${column.smallColumnName?uncap_first}}, '%')<#elseif column.javaType == 'Date'>date_format(${tableAlias}.${column.columnName},'%Y-%m-%d') = date_format(${r'#'}{${column.smallColumnName?uncap_first}},'%Y-%m-%d')<#else>${tableAlias}.${column.columnName} = ${r'#'}{${column.smallColumnName?uncap_first},jdbcType=${column.jdbcType}}</#if>
         </if>
         </#list>
         </#if>
@@ -69,12 +42,12 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="select${modelNameUpperCamel}ById" parameterType="${pkColumn.javaType}" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="select${modelNameUpperCamel}Vo"/>
         where
         <#list allColumn as column>
-            <#if column.isPk=='1'>
-                ${column.columnName} = ${r'#'}{${column.smallColumnName}}
-            </#if>
+        <#if column.isPk=='1'>
+        ${tableAlias}.${column.columnName} = ${r'#'}{${column.smallColumnName}}
+        </#if>
         </#list>
     </select>
 
@@ -82,30 +55,42 @@
     <insert id="insert${modelNameUpperCamel}" parameterType="${modelNameUpperCamel}" <#if pkColumn.isIncrement=='1'> useGeneratedKeys="true" keyProperty="${pkColumn.smallColumnName}"</#if>>
         insert into ${tableName}
         <trim prefix="(" suffix=")" suffixOverrides=",">
-            <#if pkColumn.isIncrement=='1'>
-                <#list allColumn as column>
-                    <#if column.columnName!=pkColumn.columnName>
-                        <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${column.columnName},</if>
-                    </#if>
-                </#list>
-            <#else>
-                <#list allColumn as column>
-                    <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${column.columnName},</if>
-                </#list>
-            </#if>
+        <#if pkColumn.isIncrement=='1'>
+        <#list allColumn as column>
+        <#if column.columnName!=pkColumn.columnName && column.javaType == 'Date' && column.smallColumnName=='createTime'>
+        ${column.columnName},
+        <#elseif column.columnName!=pkColumn.columnName>
+        <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${column.columnName},</if>
+        </#if>
+        </#list>
+        <#else>
+        <#list allColumn as column>
+        <#if column.javaType == 'Date' && column.smallColumnName=='createTime'>
+        ${column.columnName},
+        <#else>
+        <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${column.columnName},</if>
+        </#if>
+        </#list>
+        </#if>
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <#if pkColumn.isIncrement=='1'>
-                <#list allColumn as column>
-                    <#if column.columnName!=pkColumn.columnName>
-                    <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${r'#'}{${column.smallColumnName}},</if>
-                    </#if>
-                </#list>
-            <#else>
-                <#list allColumn as column>
-                    <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${r'#'}{${column.smallColumnName}},</if>
-                </#list>
-            </#if>
+        <#if pkColumn.isIncrement=='1'>
+        <#list allColumn as column>
+        <#if column.columnName!=pkColumn.columnName && column.javaType == 'Date' && column.smallColumnName=='createTime'>
+        SYSDATE(),
+        <#elseif column.columnName!=pkColumn.columnName>
+        <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${r'#'}{${column.smallColumnName}},</if>
+        </#if>
+        </#list>
+        <#else>
+        <#list allColumn as column>
+        <#if column.javaType == 'Date' && column.smallColumnName=='createTime'>
+        SYSDATE(),
+        <#else>
+        <if test="${column.smallColumnName} != null<#if column.javaType == 'String'> and ${column.smallColumnName} != ''</#if>">${r'#'}{${column.smallColumnName}},</if>
+        </#if>
+        </#list>
+        </#if>
         </trim>
     </insert>
 
@@ -114,18 +99,18 @@
         insert into ${tableName}
         (<#if pkColumn.isIncrement=='1'>
         <#list allColumn as column><#if column.columnName!=pkColumn.columnName>${column.columnName}<#if allColumnCount != column.sort>,</#if></#if></#list>
-    <#else>
+        <#else>
         <#list allColumn as column>${column.columnName}<#if allColumnCount != column.sort>,</#if></#list>
         </#if>
         )
         values
         <foreach collection="list" item="item" index="index" separator=",">
-            (<#if pkColumn.isIncrement=='1'>
-            <#list allColumn as column><#if column.columnName!=pkColumn.columnName>${r'#'}{${r'item.'}${column.smallColumnName}}<#if allColumnCount != column.sort>,</#if></#if></#list>
+        (<#if pkColumn.isIncrement=='1'>
+        <#list allColumn as column><#if column.columnName!=pkColumn.columnName>${r'#'}{${r'item.'}${column.smallColumnName}}<#if allColumnCount != column.sort>,</#if></#if></#list>
         <#else>
-            <#list allColumn as column>${r'#'}{${r'item.'}${column.smallColumnName}}<#if allColumnCount != column.sort>,</#if></#list>
-            </#if>
-            )
+        <#list allColumn as column>${r'#'}{${r'item.'}${column.smallColumnName}}<#if allColumnCount != column.sort>,</#if></#list>
+        </#if>
+        )
         </foreach>
     </insert>
 
@@ -134,47 +119,70 @@
         delete FROM ${tableName} where ${pkColumn.columnName} = ${r'#'}{${pkColumn.smallColumnName}}
     </delete>
 
-    <!--逻辑删除-->
-    <delete id="delete${modelNameUpperCamel}ById2" parameterType="${pkColumn.javaType}">
-        update ${tableName} set del_flag='2' where ${pkColumn.columnName} = ${r'#'}{${pkColumn.smallColumnName}}
-    </delete>
+    <#list allColumn as column>
+    <#if column.columnName=='del_flag' && column.columnType?contains('int')>
+    <!--逻辑删除,更新删除字段-->
+    <update id="updateDelFlagById" parameterType="${pkColumn.javaType}">
+        update ${tableName} set del_flag=1 where ${pkColumn.columnName} = ${r'#'}{${pkColumn.smallColumnName}}
+    </update>
+    <#elseif column.columnName=='del_flag'>
+    <!--逻辑删除,更新删除字段-->
+    <update id="updateDelFlagById" parameterType="${pkColumn.javaType}">
+        update ${tableName} set del_flag='1' where ${pkColumn.columnName} = ${r'#'}{${pkColumn.smallColumnName}}
+    </update>
+    </#if>
+    </#list>
 
-    <!--删除操作SQL-->
+    <!--批量删除操作SQL-->
     <delete id="delete${modelNameUpperCamel}ByIds" parameterType="${pkColumn.javaType}">
         delete FROM ${tableName} where ${pkColumn.columnName} in
         <foreach item="${pkColumn.smallColumnName}" collection="array" open="(" separator="," close=")">
-            ${r'#'}{${pkColumn.smallColumnName}}
+             ${r'#'}{${pkColumn.smallColumnName}}
         </foreach>
     </delete>
 
-    <!--逻辑批量删除-->
-    <delete id="delete${modelNameUpperCamel}ByIds2" parameterType="${pkColumn.javaType}">
-        update ${tableName} set del_flag='2' where ${pkColumn.columnName} in
+    <#list allColumn as column>
+    <#if column.columnName=='del_flag' && column.columnType?contains('int')>
+    <!--逻辑批量删除,批量更新删除字段-->
+    <update id="updateDelFlagByIds" parameterType="${pkColumn.javaType}">
+        update ${tableName} set del_flag=1 where ${pkColumn.columnName} in
         <foreach item="${pkColumn.smallColumnName}" collection="array" open="(" separator="," close=")">
-            ${r'#'}{${pkColumn.smallColumnName}}
+          ${r'#'}{${pkColumn.smallColumnName}}
         </foreach>
-    </delete>
+    </update>
+    <#elseif column.columnName=='del_flag'>
+    <!--逻辑批量删除,批量更新删除字段-->
+    <update id="updateDelFlagByIds" parameterType="${pkColumn.javaType}">
+        update ${tableName} set del_flag=1 where ${pkColumn.columnName} in
+        <foreach item="${pkColumn.smallColumnName}" collection="array" open="(" separator="," close=")">
+          ${r'#'}{${pkColumn.smallColumnName}}
+        </foreach>
+    </update>
+    </#if>
+    </#list>
 
     <!--更新操作SQL-->
     <update id="update${modelNameUpperCamel}" parameterType="${modelNameUpperCamel}">
         update ${tableName}
         <trim prefix="SET" suffixOverrides=",">
-            <#list allColumn as column>
-                <#if column.isPk !='1'>
-                    <if test="${column.smallColumnName} != null <#if column.javaType == 'String' > and ${column.smallColumnName} != ''</#if>">${column.columnName} = ${r'#'}{${column.smallColumnName}},</if>
-                </#if>
-            </#list>
+        <#list allColumn as column>
+        <#if column.isPk !='1' && column.javaType == 'Date' && column.smallColumnName=='updateTime'>
+        ${column.columnName} = SYSDATE(),
+        <#elseif column.isPk !='1'>
+        <if test="${column.smallColumnName} != null <#if column.javaType == 'String' > and ${column.smallColumnName} != ''</#if>">${column.columnName} = ${r'#'}{${column.smallColumnName}},</if>
+        </#if>
+        </#list>
         </trim>
-        where ${pkColumn.columnName} = ${r'#'}{${pkColumn.smallColumnName}}
+         where ${pkColumn.columnName} = ${r'#'}{${pkColumn.smallColumnName}}
     </update>
 
     <!--批量更新某个字段-->
     <update id="batchUpdate${modelNameUpperCamel}List" >
         update ${tableName} set
         <#if allColumn?exists>
-            <#list allColumn as column>${column.columnName}=''<#if allColumnCount != column.sort>,</#if></#list>
+        <#list allColumn as column>${column.columnName}=''<#if allColumnCount != column.sort>,</#if></#list>
         </#if>
-        where ${pkColumn.columnName} in
+         where ${pkColumn.columnName} in
         <foreach collection="array" item="item"  open="(" close=")" separator=",">
             ${r'#'}{item}
         </foreach>

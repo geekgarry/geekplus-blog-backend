@@ -22,6 +22,8 @@ import com.geekplus.webapp.common.service.ChatGPTService;
 import com.geekplus.webapp.common.service.GeminiChatService;
 import com.geekplus.webapp.common.service.GenericAiService;
 import com.geekplus.common.dto.GenericAiRequest;
+import com.geekplus.webapp.common.chat.ChatHistoryPersistence;
+import com.geekplus.webapp.common.chat.ChatHistoryRedisTtl;
 import com.geekplus.webapp.function.entity.ChatAILog;
 import com.geekplus.webapp.function.service.IChatAILogService;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -248,8 +250,11 @@ public class ChatAIController extends BaseController {
         done.put("recordId",chatPromptReq.getHistoryId());
         //如果为空
         if(StringUtils.isEmpty(chatPromptReq.getHistoryId()) && "guest".equals(chatPromptReq.getUsername())){
-            String strPreKey ="GeekPlus_"+ip+"_"+osName+"_"+browserName+"_"+userAId;//没有重新赋值
-            md5StrKey = chatPromptReq.getUsername() + ":" + DigestUtils.md5DigestAsHex(strPreKey.getBytes());
+            String strPreKey ="GeekPlus_"+ip+"_"+osName+"_"+browserName+"_"+userAId;
+            String chatRecordId = DigestUtils.md5DigestAsHex(strPreKey.getBytes());
+            md5StrKey = chatPromptReq.getUsername() + ":" + chatRecordId;
+            chatAILog.setChatRecordId(chatRecordId);
+            done.put("recordId", chatRecordId);
         }else if(StringUtils.isEmpty(chatPromptReq.getHistoryId())) {
             String strPreKey ="GeekPlus_"+System.currentTimeMillis()+"_"+request.getRequestedSessionId();
             String chatRecordId = DigestUtils.md5DigestAsHex(strPreKey.getBytes());
@@ -340,8 +345,7 @@ public class ChatAIController extends BaseController {
                         //保存到redis里面 rightPush是从list列表尾部插入，先进后出
                         //stringRedisTemplate.opsForHash().putAll(Md5StrKey, modelMsgMap);
                         stringRedisTemplate.opsForList().rightPush(finalMd5StrKey, JSONObject.toJSONString(userMsgMap), JSONObject.toJSONString(modelMsgMap));
-                        //}
-                        stringRedisTemplate.expire(finalMd5StrKey, 24, TimeUnit.HOURS);
+                        ChatHistoryRedisTtl.refreshSessionExpire(stringRedisTemplate, finalMd5StrKey, chatPromptReq.getUsername());
                         chatAILog.setAskContent(JSONObject.toJSONString(userMsgMap));//fileUrl+"\n"+chatPrompt.getChatMsg()
                         chatAILog.setReplyContent(JSONObject.toJSONString(modelMsgMap));//replaceAll("\\s*","").replaceAll(" +"," ")
                         chatAILog.setUsername(chatPromptReq.getUsername());
@@ -349,7 +353,7 @@ public class ChatAIController extends BaseController {
                         chatAILog.setUserMac("2060-XX-XX");
                         //Date logDate= DateTimeUtils.getCurrentDate(LocalDate.now());
                         chatAILog.setCreateTime(chatReplyDate);
-                        chatgptLogService.insertChatAILog(chatAILog);
+                        ChatHistoryPersistence.saveChatLogIfMember(chatgptLogService, chatAILog, chatPromptReq.getUsername());
                     });
                 // ⬇️ 关键：在流结束时追加一个最终结果，在最后拼接一条完整的回复（带自定义属性）
                 Flux<Map<String, Object>> finalFlux = modelFlux.concatWith(

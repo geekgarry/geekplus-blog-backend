@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.geekplus.common.util.http.ServletUtil;
+import com.geekplus.webapp.common.chat.ChatHistoryPersistence;
+import com.geekplus.webapp.common.chat.ChatHistoryRedisTtl;
 import com.geekplus.webapp.function.entity.ChatAILog;
 import com.geekplus.common.util.datetime.DateTimeUtils;
 import com.geekplus.common.util.baidu.BaiduASRUtil;
@@ -161,7 +163,7 @@ public class ChatGPTService {
                         chatAILog.setUserMac(mac);
                         Date date= DateTimeUtils.getCurrentDate(LocalDate.now());
                         chatAILog.setCreateTime(date);
-                        chatgptLogService.insertChatAILog(chatAILog);
+                        ChatHistoryPersistence.saveChatLogIfMember(chatgptLogService, chatAILog, fromUser);
                         return mapMsg;
                     }
                 }
@@ -208,7 +210,7 @@ public class ChatGPTService {
                         chatAILog.setUserMac(mac);
                         Date date= DateTimeUtils.getCurrentDate(LocalDate.now());
                         chatAILog.setCreateTime(date);
-                        chatgptLogService.insertChatAILog(chatAILog);
+                        ChatHistoryPersistence.saveChatLogIfMember(chatgptLogService, chatAILog, fromUser);
                         return mapMsg;
                     }
                 }
@@ -251,13 +253,13 @@ public class ChatGPTService {
                 stringRedisTemplate.opsForList().rightPush(md5Content, JSONObject.toJSONString(msgMap1), JSONObject.toJSONString(msgMap2));
             }
         }
-        stringRedisTemplate.expire(md5Content, 8, TimeUnit.HOURS);
+        ChatHistoryRedisTtl.refreshSessionExpire(stringRedisTemplate, md5Content, fromUser);
         chatAILog.setUsername(fromUser);
         chatAILog.setUserIp(ip);
         chatAILog.setUserMac(mac);
         Date date= DateTimeUtils.getCurrentDate(LocalDate.now());
         chatAILog.setCreateTime(date);
-        chatgptLogService.insertChatAILog(chatAILog);
+        ChatHistoryPersistence.saveChatLogIfMember(chatgptLogService, chatAILog, fromUser);
         return mapMsg;
 
     }
@@ -303,7 +305,7 @@ public class ChatGPTService {
         chatAILog.setCreateTime(date);
         chatAILog.setAskContent(prompt);
         chatAILog.setReplyContent(text);
-        chatgptLogService.insertChatAILog(chatAILog);
+        ChatHistoryPersistence.saveChatLogIfMember(chatgptLogService, chatAILog, chatUser);
         System.out.println(text);
         return text;
     }

@@ -1,56 +1,54 @@
-# 代码生成：Element / Ant Design Vue 双前端模板
+# 代码生成：Element / Ant Design Vue × 动态 / 扁平查询模板
 
 ## 概述
 
-代码生成在原有 **Element UI** 页面模板（`vue.ftl`）基础上，增加 **Ant Design Vue** 模板（`vue-antd.ftl`），通过请求参数 `uiType` 切换，互为互补。
+代码生成 Vue 页由 **`uiType` × `queryMode`** 共同决定模板：
 
-| uiType | Vue 模板 | 典型消费端 |
-|--------|----------|------------|
-| `element`（默认） | `generator/template/vue/vue.ftl` | geekplus-blog-frontend |
-| `antd` | `generator/template/vue/vue-antd.ftl` | Plus Admin（Ant Design Vue Pro） |
+| uiType | queryMode | Vue 模板 | 说明 |
+|--------|-----------|----------|------|
+| `element`（默认） | `dynamic`（默认） | `vue.ftl` | Element + DynamicQueryForm |
+| `element` | `flat` | `vue-flat.ftl` | Element + 顶部扁平筛选项 |
+| `antd` | `dynamic` | `vue-antd.ftl` | Ant Design Vue + 内联动态条件 |
+| `antd` | `flat` | `vue-antd-flat.ftl` | Ant Design Vue + 扁平筛选项 |
 
-别名：`ant` / `ant-design-vue` / `antdv` → `antd`。
+别名：`ant` / `ant-design-vue` / `antdv` → `antd`；`simple` / `form` → `flat`。
 
 ## API
 
 | 接口 | 参数 |
 |------|------|
-| `GET /generator/download/{tableName}` | `uiType` query，默认 `element` |
-| `GET /generator/previewCodeByGenTable/{tableId}` | `uiType` |
-| `GET /generator/downloadByGenTable/{tableIds}` | `uiType` |
+| `GET /generator/download/{tableName}` | `uiType`、`queryMode` |
+| `GET /generator/previewCodeByGenTable/{tableId}` | 同上 |
+| `GET /generator/downloadByGenTable/{tableIds}` | 同上 |
 
-实现：`GenCodeController` → `CodeGenerateByTemplate.setUiType`（ThreadLocal）→ `resolveVueTemplateName()`。
+实现：`GenCodeController` → `setUiType` / `setQueryMode`（ThreadLocal）→ `resolveVueTemplateName()` → `clearGenerateContext()`。
 
-## Ant 模板特性（`vue-antd.ftl`）
+## 字段类型适配（queryValueType）
 
-- Ant Design Vue 1.x 组件（`a-form-model` / `a-table` / `a-modal` / `pagination`）
-- **动态条件查询**（默认 2 行，可增删）：
-  - 字段下拉（非主键列）
-  - 条件：`eq` / `ne` / `gt` / `ge` / `lt` / `le` / `like` / `notLike` / `isNull` / `isNotNull`
-  - 值输入（为空/不为空时隐藏）
-  - 「查询配置」：最大条件数、是否显示操作符文案
-- `buildQueryParams()`：兼容扁平字段 + **`conditionsJson` 字符串**（JSON 数组，供 `DynamicQueryHelper` 解析）
+生成列通过 `TableColumnInfo.getQueryValueType()`（`GenUtil.resolveQueryValueType`）得到：
 
-详见 [17-动态条件查询.md](./17-动态条件查询.md)。`eq`/`like` 仍同步写入同名字段，保证仅扁平筛选的旧 Mapper 可用。
+`text` | `textarea` | `number` | `select` | `date` | `datetime` | `switch`
+
+- **动态查询**：按类型裁剪运算符；`isNull` / `isNotNull` 时值控件禁用；number/date/datetime/select 用对应控件。
+- **扁平查询**：顶部表单按类型渲染 `el-input-number` / `el-date-picker` / `a-input-number` / `a-date-picker` 等；并带 BaseEntity 的 **创建时间区间**（`beginTime`/`endTime`）与 **searchValue**。
+- **searchValue**：生成 `service-impl.ftl` 会 `applyKeywordColumns`（varchar/char 列，排除 password / create_by / update_by）；前端传关键词即可多列 OR 模糊。
+
+## 列表请求（方案 A）
+
+- `POST /list`：body 传 `conditionsJson` **或** 扁平字段（互斥）；`pageNum`/`pageSize` 走 query。
+- 可选请求头 `X-GP-Conditions-Json`。
+- Controller 模板带 `@DataScope(deptAlias/userAlias=tableAlias)`；Mapper 列表仅别名版 `selectXxxList`。
+
+详见 [17-动态条件查询.md](./17-动态条件查询.md)。
 
 ## 前端约定
 
-- **Plus Admin**：代码生成页默认 `uiType=antd`
-- **geekplus-blog 管理端**：默认 `uiType=element`，可切换为 antd 预览/下载
+- **geekplus-blog 管理端**：默认 `uiType=element` + `queryMode=dynamic`，工具页可切换四组合预览/下载。
+- **Plus Admin**：可默认 `uiType=antd`。
 
 ## 相关文件
 
-- `src/main/resources/generator/template/vue/vue.ftl`
-- `src/main/resources/generator/template/vue/vue-antd.ftl`
-- `src/main/resources/generator/template/html/index.ftl`（Bootstrap 5 + jQuery AJAX，与 Vue 同形态的动态条件 CRUD 静态页）
+- `generator/template/vue/vue.ftl` / `vue-flat.ftl` / `vue-antd.ftl` / `vue-antd-flat.ftl`
+- `generator/template/js/vue-js.ftl`（POST list）
+- `generator/template/java/controller.ftl`（GET+POST list、`@DataScope`）
 - `CodeGenerateByTemplate.java`、`GenCodeController.java`
-
-## Bootstrap HTML 模板（`html/index.ftl`）
-
-与 Vue 列表页能力对齐的独立 HTML 页，便于非 SPA / 快速联调：
-
-- **动态条件**：字段下拉 + 运算符 + 值，默认 2 行，可增删；可调最大条件数
-- **请求**：jQuery AJAX → `GET list` / `GET/{id}` / `POST add|update` / `DELETE /{ids}` / `GET export`
-- **参数**：`conditionsJson` 字符串 + `eq`/`like` 扁平字段兼容（同 DynamicQuery 约定）
-- **样式**：Bootstrap 5 CDN；鉴权头尝试读取 Cookie/本地存储中的 `Plus-Token`
-- 预览与 ZIP 包路径：`/html/{module}/{business}/index.html`

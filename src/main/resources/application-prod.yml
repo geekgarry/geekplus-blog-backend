@@ -6,6 +6,8 @@ server:
   tomcat:
     # tomcat的URI编码
     uri-encoding: UTF-8
+    # 允许查询串中的 []{}| 等（兜底；前端应对 conditionsJson 做完整 encodeURIComponent）
+    relaxed-query-chars: "|,{,},[,]"
     threads:
       # tomcat最大线程数，默认为200
       max: 800

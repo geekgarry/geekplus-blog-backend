@@ -291,6 +291,57 @@ public class GenUtil {
         }
         return type;
     }
+
+    /**
+     * 推断列表查询 valueType（与前端 DynamicQueryForm / 扁平表单一致）
+     * @param htmlType 可选人工配置
+     * @param columnDataType 库类型如 varchar、datetime
+     * @param javaType Java 类型如 String、Date
+     */
+    public static String resolveQueryValueType(String htmlType, String columnDataType, String javaType) {
+        if (htmlType != null && !htmlType.trim().isEmpty()) {
+            String h = htmlType.trim().toLowerCase();
+            if ("select".equals(h) || "radio".equals(h)) {
+                return "select";
+            }
+            if ("checkbox".equals(h) || "switch".equals(h)) {
+                return "switch";
+            }
+            if ("datetime".equals(h) || "datepicker".equals(h)) {
+                return "datetime";
+            }
+            if ("date".equals(h)) {
+                return "date";
+            }
+            if ("textarea".equals(h) || "editor".equals(h)) {
+                // 查询区不用 textarea，避免撑开布局
+                return "text";
+            }
+            if ("number".equals(h) || "input-number".equals(h)) {
+                return "number";
+            }
+            if ("input".equals(h)) {
+                return "text";
+            }
+        }
+        String jt = javaType == null ? "" : javaType;
+        String dt = columnDataType == null ? "" : columnDataType.toLowerCase();
+        if ("Date".equals(jt) || "datetime".equals(dt) || "timestamp".equals(dt) || "time".equals(dt)) {
+            return "datetime";
+        }
+        if ("date".equals(dt) || "year".equals(dt)) {
+            return "date";
+        }
+        if ("Integer".equals(jt) || "Long".equals(jt) || "Double".equals(jt) || "Float".equals(jt) || "BigDecimal".equals(jt)
+                || "int".equals(dt) || "bigint".equals(dt) || "tinyint".equals(dt) || "smallint".equals(dt)
+                || "mediumint".equals(dt) || "decimal".equals(dt) || "numeric".equals(dt)
+                || "float".equals(dt) || "double".equals(dt)) {
+            return "number";
+        }
+        // text/longtext 等在查询里也走单行 text
+        return "text";
+    }
+
     /**
      * 将数据库类型转换成mybatis配置文件类型
      * @param sqlTypeName 数据库类型

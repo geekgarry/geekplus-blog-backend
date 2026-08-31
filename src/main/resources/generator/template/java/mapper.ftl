@@ -10,14 +10,9 @@ import java.util.List;
 public interface ${modelNameUpperCamel}Mapper {
 
     /**
-    * 查询全部
+    * 查询全部（表别名列表）
     */
     List<${modelNameUpperCamel}> select${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel});
-
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<${modelNameUpperCamel}> selectUnion${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel});
 
     /**
     * 根据Id查询单条数据

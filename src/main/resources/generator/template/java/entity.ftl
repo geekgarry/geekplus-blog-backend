@@ -1,45 +1,24 @@
 package ${basePackage}.webapp.${moduleName}.entity;
 
 import com.geekplus.common.domain.BaseEntity;
-import com.geekplus.common.query.DynamicQueryColumns;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 <#list importList as import>
 import ${import};
 </#list>
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
  * 功能：${functionName} 对象:${tableName}
+ * <p>
+ * 动态条件可查询字段在 Service {@code DynamicQueryHelper.prepare(entity, alias, fields...)} 声明。
  *
  * @author ${author}
  * @date ${date}
  */
-public class ${modelNameUpperCamel} extends BaseEntity implements DynamicQueryColumns
+public class ${modelNameUpperCamel} extends BaseEntity
 {
     private static final long serialVersionUID = 1L;
-
-    /** 动态查询白名单：前端 field → 列名（排除主键/密码/审计敏感列可按需调整） */
-    private static final Map<String, String> DYNAMIC_QUERY_COLUMNS;
-    static {
-        Map<String, String> m = new LinkedHashMap<>();
-<#if allColumn?exists>
-<#list allColumn as column>
-<#if column.isPk!='1' && column.smallColumnName != 'password' && column.smallColumnName != 'delFlag'>
-        m.put("${column.smallColumnName}", "${column.columnName}");
-</#if>
-</#list>
-</#if>
-        DYNAMIC_QUERY_COLUMNS = Collections.unmodifiableMap(m);
-    }
-
-    @Override
-    public Map<String, String> dynamicQueryColumns() {
-        return DYNAMIC_QUERY_COLUMNS;
-    }
 
     <#list allColumn as column>
 

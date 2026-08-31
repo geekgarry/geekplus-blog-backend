@@ -16,6 +16,8 @@ import com.geekplus.common.util.google.GeminiUtils;
 import com.geekplus.common.util.http.IPUtils;
 import com.geekplus.common.util.openai.GetClientName;
 import com.geekplus.common.util.string.StringUtils;
+import com.geekplus.webapp.common.chat.ChatHistoryPersistence;
+import com.geekplus.webapp.common.chat.ChatHistoryRedisTtl;
 import com.geekplus.webapp.function.entity.ChatAILog;
 import com.geekplus.webapp.function.service.IChatAILogService;
 import eu.bitwalker.useragentutils.UserAgent;
@@ -264,8 +266,11 @@ public class GeminiChatService {
             strPreKey.append("_").append(ip)
                     .append("_").append(osName)
                     .append("_").append(browserName)
-                    .append("_").append(userAId);//没有重新赋值
-            md5Content = chatPrompt.getUsername() + ":" + DigestUtils.md5DigestAsHex(strPreKey.toString().getBytes());
+                    .append("_").append(userAId);
+            String chatRecordId = DigestUtils.md5DigestAsHex(strPreKey.toString().getBytes());
+            md5Content = chatPrompt.getUsername() + ":" + chatRecordId;
+            chatAILog.setChatRecordId(chatRecordId);
+            mapResponse.put("recordId", chatRecordId);
         }else if(StringUtils.isEmpty(chatPrompt.getHistoryId())) {
             strPreKey.append("_").append(System.currentTimeMillis())
                     .append("_").append(httpServletRequest.getRequestedSessionId());
@@ -352,8 +357,7 @@ public class GeminiChatService {
         //保存到redis里面 rightPush是从list列表尾部插入，先进后出
         //stringRedisTemplate.opsForHash().putAll(md5Content, msgMap2);
         stringRedisTemplate.opsForList().rightPush(md5Content, JSONObject.toJSONString(msgMap1), JSONObject.toJSONString(msgMap2));
-        //}
-        stringRedisTemplate.expire(md5Content, 24, TimeUnit.HOURS);
+        ChatHistoryRedisTtl.refreshSessionExpire(stringRedisTemplate, md5Content, chatPrompt.getUsername());
         chatAILog.setAskContent(JSONObject.toJSONString(msgMap1));//fileUrl+"\n"+chatPrompt.getChatMsg()
         chatAILog.setReplyContent(JSONObject.toJSONString(msgMap2));//replaceAll("\\s*","").replaceAll(" +"," ")
         chatAILog.setUsername(chatPrompt.getUsername());
@@ -361,7 +365,7 @@ public class GeminiChatService {
         chatAILog.setUserMac("2060-XX-XX");
         //Date logDate= DateTimeUtils.getCurrentDate(LocalDate.now());
         chatAILog.setCreateTime(chatReplyDate);
-        chatgptLogService.insertChatAILog(chatAILog);
+        ChatHistoryPersistence.saveChatLogIfMember(chatgptLogService, chatAILog, chatPrompt.getUsername());
         return mapResponse;
     }
 
@@ -414,13 +418,45 @@ public class GeminiChatService {
         return msgList;
     }
 
-    //根据redisKey获取此前历史聊天记录，显示的聊天消息列表
+    //根据 redisKey 获取会话消息；Redis 未命中时登录用户从 DB 回填（见 docs/18）
     public List<String> getOneHistoryMsgListByKey(String redisKey){
-        List<String> msgList=new ArrayList<>();
-        // 如果存在key，拿出来
-        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(redisKey))) {
-            msgList = stringRedisTemplate.opsForList().range(redisKey, 0, -1);//获取所有值
+        if (StringUtils.isEmpty(redisKey)) {
+            return new ArrayList<>();
         }
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(redisKey))) {
+            return stringRedisTemplate.opsForList().range(redisKey, 0, -1);
+        }
+        return hydrateSessionFromDb(redisKey);
+    }
+
+    /**
+     * Cache-Aside：DB 为真相源，Redis 为热缓存。
+     * key 形如 username:chatRecordId；guest Redis 过期后可从 DB 回填。
+     */
+    private List<String> hydrateSessionFromDb(String redisKey) {
+        List<String> msgList = new ArrayList<>();
+        if (StringUtils.isEmpty(redisKey) || !redisKey.contains(":")) {
+            return msgList;
+        }
+        String[] parts = redisKey.split(":", 2);
+        String username = parts[0];
+        String chatRecordId = parts[1];
+        List<ChatAILog> chatAILogList = chatgptLogService.getChatAILogListByRecordId(chatRecordId);
+        if (chatAILogList == null || chatAILogList.isEmpty()) {
+            return msgList;
+        }
+        stringRedisTemplate.delete(redisKey);
+        for (ChatAILog chatAILog : chatAILogList) {
+            if (StringUtils.isNotEmpty(chatAILog.getAskContent())) {
+                stringRedisTemplate.opsForList().rightPush(redisKey, chatAILog.getAskContent());
+                msgList.add(chatAILog.getAskContent());
+            }
+            if (StringUtils.isNotEmpty(chatAILog.getReplyContent())) {
+                stringRedisTemplate.opsForList().rightPush(redisKey, chatAILog.getReplyContent());
+                msgList.add(chatAILog.getReplyContent());
+            }
+        }
+        ChatHistoryRedisTtl.refreshSessionExpire(stringRedisTemplate, redisKey, username);
         return msgList;
     }
 
@@ -482,20 +518,23 @@ public class GeminiChatService {
                 String redisKey = userName+":"+chatRecordId;
                 stringRedisTemplate.delete(redisKey);
                 chatAILogList.forEach(chatAILog -> stringRedisTemplate.opsForList().rightPushAll(redisKey, Arrays.asList(chatAILog.getAskContent(), chatAILog.getReplyContent())));
-                stringRedisTemplate.expire(redisKey, 5, TimeUnit.DAYS);
+                ChatHistoryRedisTtl.refreshSessionExpire(stringRedisTemplate, redisKey, userName);
             }
         }
     }
 
     //删除历史聊天记录
     public Boolean deleteHistoryMsgList(String msgKey){
-        // 如果存在key，拿出来
-        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(msgKey))) {
-            String chatRecordId = msgKey.split(":")[1];
-            return chatgptLogService.deleteChatAILogByChatRecordId(chatRecordId) > 0 ? stringRedisTemplate.delete(msgKey) : false;
-        }else {
+        if (StringUtils.isEmpty(msgKey) || !msgKey.contains(":")) {
             return false;
         }
+        if (Boolean.TRUE.equals(stringRedisTemplate.hasKey(msgKey))) {
+            String chatRecordId = msgKey.split(":")[1];
+            return chatgptLogService.deleteChatAILogByChatRecordId(chatRecordId) > 0
+                    ? stringRedisTemplate.delete(msgKey)
+                    : false;
+        }
+        return false;
     }
 
     public Object getAllGeminiModels() throws Exception {
@@ -538,7 +577,7 @@ public class GeminiChatService {
                     chatAILogList.forEach(chatAILog -> {
                         stringRedisTemplate.opsForList().rightPushAll(redisKey, Arrays.asList(chatAILog.getAskContent(), chatAILog.getReplyContent()));
                     });
-                    stringRedisTemplate.expire(redisKey, 5, TimeUnit.DAYS);
+                    ChatHistoryRedisTtl.refreshSessionExpire(stringRedisTemplate, redisKey, username);
                 }
                 historyKeys = chatRecordIds.stream().map(historyKey -> username + ":" +historyKey).collect(Collectors.toSet());
             }

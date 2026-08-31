@@ -132,13 +132,13 @@ public class SysUserServiceImpl implements SysUserService {
     }
 
     /**
-    * 查询全部（无表别名；DataScope 由 Controller 写入 params；含 conditionsJson 动态条件）
+    * 查询全部（表别名 su；含 conditionsJson / searchValue）
     */
     @Override
     public List<SysUser> selectSysUserList(SysUser sysUser){
         expandDeptIdFilter(sysUser);
-        DynamicQueryHelper.prepare(sysUser);
-        DynamicQueryHelper.applyKeywordColumns(sysUser, "username", "nickname", "phone_number", "email");
+        DynamicQueryHelper.prepare(sysUser, "su");
+        DynamicQueryHelper.applyKeywordColumns(sysUser, "su.username", "su.nickname", "su.phone_number", "su.email");
         return sysUserMapper.selectSysUserList(sysUser);
     }
 
@@ -207,17 +207,6 @@ public class SysUserServiceImpl implements SysUserService {
     public SysUser selectSysUserByPassword(SysUser sysUser) {
         sysUser.setPassword(EncryptUtil.md5EncryptPwd(sysUser.getPassword()));
         return sysUserMapper.selectSysUserByPassword(sysUser);
-    }
-
-    /**
-    * 联合查询用户列表（Mapper 使用表别名 su；含 conditionsJson 动态条件）。
-    */
-    @Override
-    public List<SysUser> selectUnionSysUserList(SysUser sysUser){
-        expandDeptIdFilter(sysUser);
-        DynamicQueryHelper.prepare(sysUser, "su");
-        DynamicQueryHelper.applyKeywordColumns(sysUser, "su.username", "su.nickname", "su.phone_number", "su.email");
-        return sysUserMapper.selectUnionSysUserList(sysUser);
     }
 
     /**

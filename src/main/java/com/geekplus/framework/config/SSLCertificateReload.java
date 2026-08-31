@@ -200,6 +200,8 @@ public class SSLCertificateReload implements ApplicationListener<WebServerInitia
 
         sslHostConfig.addCertificate(cert);
         connector.addSslHostConfig(sslHostConfig);
+        // 与 server.tomcat.relaxed-query-chars 对齐（热更新重建 connector 时否则丢失）
+        connector.setProperty("relaxedQueryChars", "[]|{}^\"<>\\");
         return connector;
     }
 

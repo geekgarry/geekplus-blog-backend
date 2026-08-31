@@ -95,11 +95,6 @@ public interface SysUserService {
     SysUser selectSysUserByPassword(SysUser sysUser);
 
     /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysUser> selectUnionSysUserList(SysUser sysUser);
-
-    /**
     * 根据Id查询单条数据
     */
     public SysUser selectSysUserById(Long userId);

@@ -298,18 +298,13 @@
     return list;
   }
 
-  /** 对齐前端 buildDynamicQueryParams：conditionsJson + eq/like 扁平兼容 */
+  /** 对齐前端：有动态条件只传 conditionsJson，与扁平字段互斥 */
   function buildQueryParams() {
     var params = {
       pageNum: state.pageNum,
       pageSize: state.pageSize
     };
     var dyn = collectConditions();
-    dyn.forEach(function (c) {
-      if (c.op === 'eq' || c.op === 'like') {
-        params[c.field] = c.value;
-      }
-    });
     if (dyn.length) {
       params.conditionsJson = JSON.stringify(dyn);
     }

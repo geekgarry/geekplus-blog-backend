@@ -1,5 +1,6 @@
 package ${basePackage}.webapp.${moduleName}.controller;
 
+import ${basePackage}.common.annotation.DataScope;
 import ${basePackage}.common.annotation.Log;
 import ${basePackage}.common.annotation.RepeatSubmit;
 import ${basePackage}.common.core.controller.BaseController;
@@ -10,7 +11,6 @@ import ${basePackage}.common.util.poi.ExcelUtil;
 import ${basePackage}.webapp.${moduleName}.entity.${modelNameUpperCamel};
 import ${basePackage}.webapp.${moduleName}.service.${modelNameUpperCamel}Service;
 import ${basePackage}.common.page.PageDataInfo;
-import ${basePackage}.common.annotation.Log;
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
 import org.springframework.web.bind.annotation.*;
@@ -124,29 +124,52 @@ public class ${modelNameUpperCamel}Controller extends BaseController {
      */
     @GetMapping("/listAll")
     public PageDataInfo listAll(${modelNameUpperCamel} ${modelNameLowerCamel}) {
-        //PageHelper.startPage(page, size);
         List<${modelNameUpperCamel}> list = ${modelNameLowerCamel}Service.query${modelNameUpperCamel}List(${modelNameLowerCamel});
         PageDataInfo rspData = new PageDataInfo();
         rspData.setCode(200);
         rspData.setMsg("查询成功");
         rspData.setRows(list);
         rspData.setTotal(new PageInfo(list).getTotal());
-        //PageInfo pageInfo = new PageInfo(list);
         return rspData;
     }
 
     /**
-     * 条件查询所有 ${functionName}
+     * 列表 GET（默认）：conditionsJson / 扁平字段走 query；Header X-GP-Conditions-Json 由 prepare 兜底。
      */
     @RequiresPermissions("${permissionPrefix}:list")
+    @DataScope(deptAlias = "${tableAlias}", userAlias = "${tableAlias}")
     @GetMapping("/list")
-    //public PageDataInfo list(@RequestParam(defaultValue = "0") Integer page, @RequestParam(defaultValue = "0") Integer size,${modelNameUpperCamel} ${modelNameLowerCamel}) {
-    public PageDataInfo list(${modelNameUpperCamel} ${modelNameLowerCamel}) {
-        //PageHelper.startPage(pageParam.getPageNum(), pageParam.getPageSize());
+    public PageDataInfo list(${modelNameUpperCamel} ${modelNameLowerCamel},
+                             @RequestParam(value = "conditionsJson", required = false) String conditionsJson) {
+        return doList(mergeConditionsJson(${modelNameLowerCamel}, conditionsJson));
+    }
+
+    /**
+     * 列表 POST：与 GET 同逻辑，筛选项从 RequestBody 取。
+     */
+    @RequiresPermissions("${permissionPrefix}:list")
+    @DataScope(deptAlias = "${tableAlias}", userAlias = "${tableAlias}")
+    @PostMapping("/list")
+    public PageDataInfo listPost(@RequestBody(required = false) ${modelNameUpperCamel} body,
+                                 @RequestParam(value = "conditionsJson", required = false) String conditionsJson) {
+        return doList(mergeConditionsJson(body, conditionsJson));
+    }
+
+    private PageDataInfo doList(${modelNameUpperCamel} ${modelNameLowerCamel}) {
         startPage();
         List<${modelNameUpperCamel}> list = ${modelNameLowerCamel}Service.query${modelNameUpperCamel}List(${modelNameLowerCamel});
-        //PageInfo pageInfo = new PageInfo(list);
         return getDataTable(list);
+    }
+
+    private static ${modelNameUpperCamel} mergeConditionsJson(${modelNameUpperCamel} entity, String conditionsJson) {
+        if (entity == null) {
+            entity = new ${modelNameUpperCamel}();
+        }
+        if ((entity.getConditionsJson() == null || entity.getConditionsJson().length() == 0)
+                && conditionsJson != null && conditionsJson.length() > 0) {
+            entity.setConditionsJson(conditionsJson);
+        }
+        return entity;
     }
 
     /**

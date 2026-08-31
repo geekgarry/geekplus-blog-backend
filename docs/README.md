@@ -29,6 +29,7 @@
 | **15** | [15-代码生成发布菜单.md](./15-代码生成发布菜单.md) | ZIP 与发布解耦；幂等菜单、事务、审计 |
 | **16** | [16-代码生成双前端模板-uiType.md](./16-代码生成双前端模板-uiType.md) | Element / Ant Design Vue 双模板；`uiType`；antd 动态条件；Bootstrap HTML 静态页 |
 | **17** | [17-动态条件查询.md](./17-动态条件查询.md) | BaseEntity.conditionsJson + DynamicQueryHelper + MyBatis 公共片段；用户列表已接入 |
+| **18** | [18-AI对话历史Redis与DB策略.md](./18-AI对话历史Redis与DB策略.md) | 登录用户 DB 真相源 + Redis 热缓存；guest 仅 Redis；`getOneHistoryMessage` DB 回填 |
 
 ---
 

@@ -12,14 +12,9 @@ import java.util.List;
 public interface ${modelNameUpperCamel}Service {
 
     /**
-    * 查询全部
+    * 查询全部（别名列表；Service 内 prepare(entity, tableAlias)）
     */
     public List<${modelNameUpperCamel}> query${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel});
-
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<${modelNameUpperCamel}> queryUnion${modelNameUpperCamel}List(${modelNameUpperCamel} ${modelNameLowerCamel});
 
     /**
     * 根据Id查询单条数据

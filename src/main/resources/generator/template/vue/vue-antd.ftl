@@ -3,7 +3,7 @@
     <a-card :bordered="false">
       <!-- 动态查询条件 -->
       <div v-show="showSearch" class="table-page-search-wrapper">
-        <a-form-model layout="inline" class="dynamic-query-form">
+        <a-form-model layout="inline" class="dynamic-query-form" @submit.native.prevent>
           <div
             v-for="(cond, index) in conditions"
             :key="cond._key"
@@ -15,6 +15,7 @@
                 allow-clear
                 placeholder="选择字段"
                 style="width: 160px"
+                @change="onFieldChange(cond)"
               >
                 <a-select-option
                   v-for="opt in fieldOptions"
@@ -31,24 +32,61 @@
                 @change="onOperatorChange(cond)"
               >
                 <a-select-option
-                  v-for="op in operatorOptions"
+                  v-for="op in opsForCondition(cond)"
                   :key="op.value"
                   :value="op.value"
                 >{{ queryConfig.showOperatorLabel ? op.label : op.symbol }}</a-select-option>
               </a-select>
             </a-form-model-item>
             <a-form-model-item :label="index === 0 ? '值' : ''">
+              <!-- isNull/isNotNull：值控件禁用（无需填写） -->
               <a-input
+                v-if="isNullOp(cond.op)"
+                value=""
+                disabled
+                placeholder="无需填写"
+                style="width: 200px"
+              />
+              <a-select
+                v-else-if="valueTypeOf(cond) === 'select' || valueTypeOf(cond) === 'switch'"
+                v-model="cond.value"
+                allow-clear
+                placeholder="请选择"
+                style="width: 200px"
+              >
+                <a-select-option :value="0">正常/是</a-select-option>
+                <a-select-option :value="1">停用/否</a-select-option>
+              </a-select>
+              <a-input-number
+                v-else-if="valueTypeOf(cond) === 'number'"
+                v-model="cond.value"
+                style="width: 200px"
+              />
+              <a-date-picker
+                v-else-if="valueTypeOf(cond) === 'date'"
+                v-model="cond.value"
+                value-format="YYYY-MM-DD"
+                style="width: 200px"
+              />
+              <a-date-picker
+                v-else-if="valueTypeOf(cond) === 'datetime'"
+                show-time
+                v-model="cond.value"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                style="width: 200px"
+              />
+              <a-input
+                v-else
                 v-model="cond.value"
                 allow-clear
                 placeholder="请输入值"
                 style="width: 200px"
-                :disabled="isNullOp(cond.op)"
                 @pressEnter="handleQuery"
               />
             </a-form-model-item>
             <a-form-model-item>
               <a-button
+                html-type="button"
                 type="danger"
                 ghost
                 icon="minus"
@@ -59,13 +97,14 @@
           </div>
           <div class="dynamic-query-actions">
             <a-button
+              html-type="button"
               type="dashed"
               icon="plus"
               :disabled="conditions.length >= queryConfig.maxConditions"
               @click="addCondition"
             >增加条件</a-button>
-            <a-button type="primary" icon="search" style="margin-left: 8px" @click="handleQuery">搜索</a-button>
-            <a-button icon="reload" style="margin-left: 8px" @click="resetQuery">重置</a-button>
+            <a-button html-type="button" type="primary" icon="search" style="margin-left: 8px" @click="handleQuery">搜索</a-button>
+            <a-button html-type="button" icon="reload" style="margin-left: 8px" @click="resetQuery">重置</a-button>
           </div>
         </a-form-model>
 
@@ -214,11 +253,46 @@ import RightToolbar from "@/components/RightToolbar";
 
 let conditionKey = 0;
 
-function createEmptyCondition() {
+/** 各 valueType 可用运算符（与 Blog DynamicQueryForm 对齐） */
+const OPS_BY_TYPE = {
+  text: ["eq", "ne", "like", "notLike", "isNull", "isNotNull"],
+  number: ["eq", "ne", "gt", "ge", "lt", "le", "isNull", "isNotNull"],
+  select: ["eq", "ne", "isNull", "isNotNull"],
+  date: ["eq", "ne", "gt", "ge", "lt", "le", "isNull", "isNotNull"],
+  datetime: ["eq", "ne", "gt", "ge", "lt", "le", "isNull", "isNotNull"],
+  switch: ["eq", "ne", "isNull", "isNotNull"]
+};
+
+const ALL_OPERATORS = [
+  { value: "eq", symbol: "=", label: "等于(=)" },
+  { value: "ne", symbol: "≠", label: "不等于(≠)" },
+  { value: "gt", symbol: ">", label: "大于(>)" },
+  { value: "ge", symbol: "≥", label: "大于等于(≥)" },
+  { value: "lt", symbol: "<", label: "小于(<)" },
+  { value: "le", symbol: "≤", label: "小于等于(≤)" },
+  { value: "like", symbol: "包含", label: "包含(like)" },
+  { value: "notLike", symbol: "不包含", label: "不包含(notLike)" },
+  { value: "isNull", symbol: "为空", label: "为空(isNull)" },
+  { value: "isNotNull", symbol: "不为空", label: "不为空(isNotNull)" }
+];
+
+function normalizeQueryValueType(vt) {
+  const t = (vt || "text").toLowerCase();
+  if (t === "textarea") return "text";
+  return OPS_BY_TYPE[t] ? t : "text";
+}
+
+function defaultOpForType(vt) {
+  const t = normalizeQueryValueType(vt);
+  if (t === "text") return "like";
+  return "eq";
+}
+
+function createEmptyCondition(field, valueType) {
   return {
     _key: ++conditionKey,
-    field: undefined,
-    op: "eq",
+    field: field,
+    op: defaultOpForType(valueType),
     value: undefined
   };
 }
@@ -243,8 +317,8 @@ export default {
         pageNum: 1,
         pageSize: 10
       },
-      // 动态查询条件（默认 2 行）
-      conditions: [createEmptyCondition(), createEmptyCondition()],
+      // 动态查询条件（默认 2 行；字段带 valueType 以适配控件）
+      conditions: [],
       queryConfig: {
         maxConditions: 8,
         showOperatorLabel: true
@@ -252,24 +326,13 @@ export default {
       fieldOptions: [
 <#if allColumn?exists>
 <#list allColumn as column>
-<#if column.isPk!='1' >
-        { value: "${column.smallColumnName}", label: "${column.columnComment}" },
+<#if column.isPk!='1' && column.smallColumnName != 'password' && column.smallColumnName != 'delFlag'>
+        { value: "${column.smallColumnName}", label: "${column.columnComment!}", valueType: "${(column.queryValueType)!'text'}" },
 </#if>
 </#list>
 </#if>
       ],
-      operatorOptions: [
-        { value: "eq", symbol: "=", label: "等于(=)" },
-        { value: "ne", symbol: "≠", label: "不等于(≠)" },
-        { value: "gt", symbol: ">", label: "大于(>)" },
-        { value: "ge", symbol: "≥", label: "大于等于(≥)" },
-        { value: "lt", symbol: "<", label: "小于(<)" },
-        { value: "le", symbol: "≤", label: "小于等于(≤)" },
-        { value: "like", symbol: "包含", label: "包含(like)" },
-        { value: "notLike", symbol: "不包含", label: "不包含(notLike)" },
-        { value: "isNull", symbol: "为空", label: "为空(isNull)" },
-        { value: "isNotNull", symbol: "不为空", label: "不为空(isNotNull)" }
-      ],
+      operatorOptions: ALL_OPERATORS,
       form: {},
       rules: {
 <#if allColumn?exists>
@@ -317,11 +380,36 @@ export default {
     };
   },
   created() {
+    // 默认两行：首字段带类型默认运算符
+    const first = this.fieldOptions[0];
+    this.conditions = [
+      createEmptyCondition(first && first.value, first && first.valueType),
+      createEmptyCondition()
+    ];
     this.getList();
   },
   methods: {
     isNullOp(op) {
       return op === "isNull" || op === "isNotNull";
+    },
+    fieldMeta(field) {
+      return (this.fieldOptions || []).find(f => f.value === field) || {};
+    },
+    valueTypeOf(cond) {
+      const vt = this.fieldMeta(cond.field).valueType || "text";
+      return normalizeQueryValueType(vt);
+    },
+    opsForCondition(cond) {
+      const keys = OPS_BY_TYPE[this.valueTypeOf(cond)] || OPS_BY_TYPE.text;
+      return ALL_OPERATORS.filter(op => keys.indexOf(op.value) >= 0);
+    },
+    onFieldChange(cond) {
+      cond.value = undefined;
+      const ops = this.opsForCondition(cond);
+      const allowed = ops.map(o => o.value);
+      if (allowed.indexOf(cond.op) < 0) {
+        cond.op = defaultOpForType(this.valueTypeOf(cond));
+      }
     },
     onOperatorChange(cond) {
       if (this.isNullOp(cond.op)) {
@@ -342,10 +430,9 @@ export default {
       this.conditions.splice(index, 1);
     },
     /**
-     * 合并分页与动态条件：
-     * - pageNum / pageSize
-     * - eq / like 时同步写入 queryParams[field]（兼容旧扁平筛选）
-     * - 始终附带 conditionsJson 字符串（GET 友好，后端 DynamicQueryHelper 解析）
+     * 合并分页与动态条件（与扁平筛选项互斥）：
+     * - 有有效动态条件时只传 conditionsJson，不写 queryParams[field]
+     * - 无动态条件时仅分页（旧扁平筛选留给未接 DynamicQuery 的接口自行扩展）
      */
     buildQueryParams() {
       const params = {
@@ -357,11 +444,14 @@ export default {
         if (!cond || !cond.field || !cond.op) {
           return;
         }
+        const meta = (this.queryFields || []).find(f => f.value === cond.field) || {};
+        const valueType = cond.valueType || meta.valueType;
         if (this.isNullOp(cond.op)) {
           dynamicConditions.push({
             field: cond.field,
             op: cond.op,
-            value: null
+            value: null,
+            valueType
           });
           return;
         }
@@ -371,11 +461,9 @@ export default {
         dynamicConditions.push({
           field: cond.field,
           op: cond.op,
-          value: cond.value
+          value: cond.value,
+          valueType
         });
-        if (cond.op === "eq" || cond.op === "like") {
-          params[cond.field] = cond.value;
-        }
       });
       if (dynamicConditions.length) {
         params.conditionsJson = JSON.stringify(dynamicConditions);
@@ -411,11 +499,16 @@ export default {
       });
     },
     handleQuery() {
+      // 仅查询，保留动态条件输入（清空输入是 resetQuery 的职责）
       this.queryParams.pageNum = 1;
       this.getList();
     },
     resetQuery() {
-      this.conditions = [createEmptyCondition(), createEmptyCondition()];
+      const first = this.fieldOptions[0];
+      this.conditions = [
+        createEmptyCondition(first && first.value, first && first.valueType),
+        createEmptyCondition()
+      ];
       this.queryParams = {
         pageNum: 1,
         pageSize: this.queryParams.pageSize || 10

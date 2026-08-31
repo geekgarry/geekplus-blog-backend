@@ -92,15 +92,7 @@
         <result column="perms" jdbcType="VARCHAR" property="perms" />
     </resultMap>
 
-    <!--系统用户表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        user_id,dept_id,username,nickname,user_type,email,phone_number,gender,avatar,password,status,del_flag,login_ip,login_time,create_by,create_time,update_by,update_time,remark
-         from sys_user
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+    <!-- 查询公共片段（表别名 su）；列表/详情/按密码等共用 -->
     <sql id="selectSysUserVo">
         select
             su.user_id,su.dept_id,su.username,su.nickname,su.user_type,su.email,su.phone_number,su.gender,su.avatar,su.password,su.status,su.del_flag,su.login_ip,su.login_time,su.create_by,su.create_time,su.update_by,su.update_time,su.remark
@@ -118,153 +110,14 @@
         left join sys_role sr on sr.role_id = sur.role_id
     </sql>
 
-    <!--数据查询操作SQL(非联合查询)；deptIdList 优先于单 deptId；params.dataScope 由 DataScopeAspect 注入；有 params.dq 时由 DynamicWhere 拼接-->
+    <!--
+      列表（别名 su）：扁平 / DynamicWhere 互斥；Service 须 prepare(user, "su")。
+      部门树 / userId / delFlag / 数据权限 始终可叠加。
+    -->
     <select id="selectSysUserList" parameterType="SysUser" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-            <if test="userId !=null">
-                AND user_id = #{userId}
-            </if>
-            <choose>
-                <when test="deptIdList != null and deptIdList.size() &gt; 0">
-                    AND dept_id IN
-                    <foreach collection="deptIdList" item="id" open="(" separator="," close=")">
-                        #{id}
-                    </foreach>
-                </when>
-                <when test="deptId !=null">
-                    AND dept_id = #{deptId}
-                </when>
-            </choose>
-            <!-- 无动态条件时：兼容旧扁平筛选项；有 params.dq 时由 DynamicWhere 拼接 -->
-            <if test="params == null or params.dq == null or params.dq.size() == 0">
-                <if test="username !=null and username != ''">
-                    AND username like concat('%', #{username}, '%')
-                </if>
-                <if test="nickname !=null and nickname != ''">
-                    AND nickname like concat('%', #{nickname}, '%')
-                </if>
-                <if test="userType !=null">
-                    AND user_type = #{userType}
-                </if>
-                <if test="email !=null and email != ''">
-                    AND email like concat('%', #{email}, '%')
-                </if>
-                <if test="phoneNumber !=null and phoneNumber != ''">
-                    AND phone_number like concat('%', #{phoneNumber}, '%')
-                </if>
-                <if test="gender !=null">
-                    AND gender = #{gender}
-                </if>
-                <if test="status !=null">
-                    AND status = #{status}
-                </if>
-            </if>
-            <if test="avatar !=null">
-                AND avatar = #{avatar}
-            </if>
-            <if test="password !=null">
-                AND password = #{password}
-            </if>
-            <if test="delFlag !=null">
-                AND del_flag = #{delFlag}
-            </if>
-            <if test="loginIp !=null">
-                AND login_ip = #{loginIp}
-            </if>
-            <if test="loginTime !=null">
-                AND login_time = #{loginTime}
-            </if>
-            <if test="createBy !=null">
-                AND create_by = #{createBy}
-            </if>
-            <if test="createTime !=null">
-                AND create_time = #{createTime}
-            </if>
-            <if test="updateBy !=null">
-                AND update_by = #{updateBy}
-            </if>
-            <if test="updateTime !=null">
-                AND update_time = #{updateTime}
-            </if>
-            <if test="remark !=null">
-                AND remark = #{remark}
-            </if>
-            <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
-            <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRange"/>
-            <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
-            <!-- 数据范围过滤（切面写入 params.dataScope，空串无影响） -->
-            ${params.dataScope}
-        </where>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
-    </select>
-
-    <!--通过用户密码和用户id查询是否存在-->
-    <select id="selectSysUserByPassword" parameterType="SysUser" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-            <if test="userId !=null">
-                AND user_id = #{userId}
-            </if>
-            <if test="deptId !=null">
-                AND dept_id = #{deptId}
-            </if>
-            <if test="username !=null and username != ''">
-                AND username = #{username}
-            </if>
-            <if test="nickname !=null">
-                AND nickname = #{nickname}
-            </if>
-            <if test="userType !=null">
-                AND user_type = #{userType}
-            </if>
-            <if test="email !=null and email != ''">
-                AND email = #{email}
-            </if>
-            <if test="phoneNumber !=null and phoneNumber != ''">
-                AND phone_number = #{phoneNumber}
-            </if>
-            <if test="gender !=null">
-                AND gender = #{gender}
-            </if>
-            <if test="password !=null">
-                AND password = #{password}
-            </if>
-            <if test="status !=null">
-                AND status = #{status}
-            </if>
-            <if test="delFlag !=null">
-                AND del_flag = #{delFlag}
-            </if>
-            <if test="loginIp !=null">
-                AND login_ip = #{loginIp}
-            </if>
-            <if test="loginTime !=null">
-                AND login_time = #{loginTime}
-            </if>
-            <if test="createBy !=null">
-                AND create_by = #{createBy}
-            </if>
-            <if test="createTime !=null">
-                AND create_time = #{createTime}
-            </if>
-            <if test="updateBy !=null">
-                AND update_by = #{updateBy}
-            </if>
-            <if test="updateTime !=null">
-                AND update_time = #{updateTime}
-            </if>
-            <if test="remark !=null">
-                AND remark = #{remark}
-            </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)；有 params.dq 时由 DynamicWhere 拼接-->
-    <select id="selectUnionSysUserList" parameterType="SysUser" resultMap="BaseResultMap">
         <include refid="selectSysUserVo"/>
         <where>
-            <if test="userId !=null">
+            <if test="userId != null">
                 AND su.user_id = #{userId}
             </if>
             <choose>
@@ -274,38 +127,105 @@
                         #{id}
                     </foreach>
                 </when>
-                <when test="deptId !=null">
+                <when test="deptId != null">
                     AND su.dept_id = #{deptId}
                 </when>
             </choose>
-            <if test="params == null or params.dq == null or params.dq.size() == 0">
-                <if test="username !=null and username != ''">
+            <if test="delFlag != null">
+                AND su.del_flag = #{delFlag}
+            </if>
+
+            <!-- A. 普通查询：无动态条件 -->
+            <if test="params == null or params['dq'] == null or params['dq'].size() == 0">
+                <if test="username != null and username != ''">
                     AND su.username like concat('%', #{username}, '%')
                 </if>
-                <if test="nickname !=null and nickname != ''">
+                <if test="nickname != null and nickname != ''">
                     AND su.nickname like concat('%', #{nickname}, '%')
                 </if>
-                <if test="userType !=null">
+                <if test="userType != null">
                     AND su.user_type = #{userType}
                 </if>
-                <if test="email !=null and email != ''">
+                <if test="email != null and email != ''">
                     AND su.email like concat('%', #{email}, '%')
                 </if>
-                <if test="phoneNumber !=null and phoneNumber != ''">
+                <if test="phoneNumber != null and phoneNumber != ''">
                     AND su.phone_number like concat('%', #{phoneNumber}, '%')
                 </if>
-                <if test="gender !=null">
+                <if test="gender != null">
                     AND su.gender = #{gender}
                 </if>
-                <if test="status !=null">
+                <if test="avatar != null and avatar != ''">
+                    AND su.avatar = #{avatar}
+                </if>
+                <if test="status != null">
                     AND su.status = #{status}
                 </if>
+                <if test="loginIp != null and loginIp != ''">
+                    AND su.login_ip = #{loginIp}
+                </if>
+                <if test="loginTime != null">
+                    AND date_format(su.login_time,'%Y-%m-%d') = date_format(#{loginTime},'%Y-%m-%d')
+                </if>
+                <if test="createBy != null and createBy != ''">
+                    AND su.create_by = #{createBy}
+                </if>
+                <if test="createTime != null">
+                    AND date_format(su.create_time,'%Y-%m-%d') = date_format(#{createTime},'%Y-%m-%d')
+                </if>
+                <if test="updateBy != null and updateBy != ''">
+                    AND su.update_by = #{updateBy}
+                </if>
+                <if test="updateTime != null">
+                    AND date_format(su.update_time,'%Y-%m-%d') = date_format(#{updateTime},'%Y-%m-%d')
+                </if>
+                <if test="remark != null and remark != ''">
+                    AND su.remark = #{remark}
+                </if>
             </if>
-            <if test="avatar !=null">
-                AND su.avatar = #{avatar}
+
+            <!-- B. 动态条件：列名已含 su. 前缀 -->
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRangeAliased"/>
+            <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
+            <if test="params != null and params.dataScope != null">${params.dataScope}</if>
+        </where>
+        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
+    </select>
+
+    <!--通过用户密码和用户id查询是否存在-->
+    <select id="selectSysUserByPassword" parameterType="SysUser" resultMap="BaseResultMap">
+        <include refid="selectSysUserVo"/>
+        <where>
+            <if test="userId !=null">
+                AND su.user_id = #{userId}
+            </if>
+            <if test="deptId !=null">
+                AND su.dept_id = #{deptId}
+            </if>
+            <if test="username !=null and username != ''">
+                AND su.username = #{username}
+            </if>
+            <if test="nickname !=null">
+                AND su.nickname = #{nickname}
+            </if>
+            <if test="userType !=null">
+                AND su.user_type = #{userType}
+            </if>
+            <if test="email !=null and email != ''">
+                AND su.email = #{email}
+            </if>
+            <if test="phoneNumber !=null and phoneNumber != ''">
+                AND su.phone_number = #{phoneNumber}
+            </if>
+            <if test="gender !=null">
+                AND su.gender = #{gender}
             </if>
             <if test="password !=null">
                 AND su.password = #{password}
+            </if>
+            <if test="status !=null">
+                AND su.status = #{status}
             </if>
             <if test="delFlag !=null">
                 AND su.del_flag = #{delFlag}
@@ -331,19 +251,13 @@
             <if test="remark !=null">
                 AND su.remark = #{remark}
             </if>
-            <include refid="com.geekplus.common.mybatis.DynamicQuery.DynamicWhere"/>
-            <include refid="com.geekplus.common.mybatis.DynamicQuery.CreateTimeRangeAliased"/>
-            <include refid="com.geekplus.common.mybatis.DynamicQuery.KeywordSearch"/>
-            <!-- 数据范围过滤 -->
-            ${params.dataScope}
         </where>
-        <include refid="com.geekplus.common.mybatis.DynamicQuery.OrderBy"/>
     </select>
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysUserById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        where user_id = #{userId}
+        <include refid="selectSysUserVo"/>
+        where su.user_id = #{userId}
     </select>
 
     <!--添加操作SQL-->
@@ -454,7 +368,7 @@
                     <if test="remark != null">remark = #{remark},</if>
                     update_time = sysdate()
         </trim>
-         where user_id = #{userId}
+         where su.user_id = #{userId}
     </update>
 
     <!--更新操作SQL-->

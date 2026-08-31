@@ -169,15 +169,17 @@ public class GenCodeController extends BaseController {
     @GetMapping("/download/{tableName}")
     public void downloadByTableSchema(HttpServletResponse response,
                                       @PathVariable("tableName") String tableName,
-                                      @RequestParam(value = "uiType", defaultValue = "element") String uiType) {
+                                      @RequestParam(value = "uiType", defaultValue = "element") String uiType,
+                                      @RequestParam(value = "queryMode", defaultValue = "dynamic") String queryMode) {
         try {
             CodeGenerateByTemplate.setUiType(uiType);
+            CodeGenerateByTemplate.setQueryMode(queryMode);
             List<Map<String, byte[]>> byStreamTemplate = genCodeService.downloadCode(tableName);
             FileCompressUtils.downloadZipStream(response, byStreamTemplate, "geekplus");
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            CodeGenerateByTemplate.clearUiType();
+            CodeGenerateByTemplate.clearGenerateContext();
         }
     }
 
@@ -187,13 +189,15 @@ public class GenCodeController extends BaseController {
     @GetMapping("/previewCodeByGenTable/{tableId}")
     public Result previewCodeByGenTable(HttpServletResponse response,
                                         @PathVariable Long tableId,
-                                        @RequestParam(value = "uiType", defaultValue = "element") String uiType) {
+                                        @RequestParam(value = "uiType", defaultValue = "element") String uiType,
+                                        @RequestParam(value = "queryMode", defaultValue = "dynamic") String queryMode) {
         try {
             CodeGenerateByTemplate.setUiType(uiType);
+            CodeGenerateByTemplate.setQueryMode(queryMode);
             TableInfo tableInfo = genCodeService.selectGenTableById(tableId);
             return Result.success(genCodeService.previewCodeByTable(tableInfo));
         } finally {
-            CodeGenerateByTemplate.clearUiType();
+            CodeGenerateByTemplate.clearGenerateContext();
         }
     }
 
@@ -204,11 +208,13 @@ public class GenCodeController extends BaseController {
     @GetMapping("/downloadByGenTable/{tableIds}")
     public void downloadByGenTable(HttpServletResponse response,
                                    @PathVariable Long[] tableIds,
-                                   @RequestParam(value = "uiType", defaultValue = "element") String uiType)
+                                   @RequestParam(value = "uiType", defaultValue = "element") String uiType,
+                                   @RequestParam(value = "queryMode", defaultValue = "dynamic") String queryMode)
     {
         List<TableInfo> tableInfoList = genCodeService.selectGenTableByIds(tableIds);
         try {
             CodeGenerateByTemplate.setUiType(uiType);
+            CodeGenerateByTemplate.setQueryMode(queryMode);
             List<Map<String,byte[]>> byStreamTemplate=null;
             if(tableInfoList.size()>1){
                 byStreamTemplate = genCodeService.downloadCodeByTable(tableInfoList);
@@ -219,7 +225,7 @@ public class GenCodeController extends BaseController {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            CodeGenerateByTemplate.clearUiType();
+            CodeGenerateByTemplate.clearGenerateContext();
         }
     }
 

@@ -55,6 +55,8 @@ public class HttpWsConfig {
         //http重定向为https
         //重定向证书端口443，便于http自动跳转https
         //connector.setRedirectPort(8443);
+        // 与 server.tomcat.relaxed-query-chars 对齐（附加 HTTP 端口不走 yml 主 connector）
+        connector.setProperty("relaxedQueryChars", "[]|{}^\"<>\\");
         return connector;
     }
 

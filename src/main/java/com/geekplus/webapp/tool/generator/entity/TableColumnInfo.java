@@ -214,6 +214,23 @@ public class TableColumnInfo extends BaseEntity {
         this.htmlType = htmlType;
     }
 
+    /**
+     * 列表查询控件类型：text/number/select/date/datetime/switch（查询区不用 textarea）
+     * FreeMarker 可用 ${column.queryValueType}
+     */
+    public String getQueryValueType() {
+        return GenUtil.resolveQueryValueType(htmlType, getColumnDataType(), getJavaType());
+    }
+
+    /** 动态条件默认运算符：文本 like，其余 eq */
+    public String getDefaultQueryOp() {
+        String vt = getQueryValueType();
+        if ("text".equals(vt)) {
+            return "like";
+        }
+        return "eq";
+    }
+
     public Integer getSort() {
         return sort;
     }

@@ -359,7 +359,7 @@ public class SysUserController extends BaseController {
     * 条件查询所有 系统用户表（{@code @DataScope} 挂在 Controller，对齐系统，保证切面必织入）
     */
     @RequiresPermissions("system:user:listAll")
-    @DataScope
+    @DataScope(deptAlias = "su", userAlias = "su")
     @GetMapping("/listAll")
     public PageDataInfo listAll(SysUser sysUser) {
         List<SysUser> list = sysUserService.selectSysUserList(sysUser);
@@ -372,12 +372,40 @@ public class SysUserController extends BaseController {
     }
 
     /**
-    * 条件查询所有 系统用户表
-    */
+     * 条件查询用户列表（GET）。
+     * conditionsJson：优先实体绑定 / query；缺失时由 DynamicQueryHelper.prepare 从 Header 补全。
+     */
     @RequiresPermissions("system:user:list")
-    @DataScope
+    @DataScope(deptAlias = "su", userAlias = "su")
     @GetMapping("/list")
-    public PageDataInfo list(SysUser sysUser) {
+    public PageDataInfo list(SysUser sysUser,
+                             @RequestParam(value = "conditionsJson", required = false) String conditionsJsonParam) {
+        return doUserList(mergeConditionsJson(sysUser, conditionsJsonParam));
+    }
+
+    /**
+     * 条件查询用户列表（POST）：与 GET 同逻辑，筛选项从 RequestBody 取。
+     */
+    @RequiresPermissions("system:user:list")
+    @DataScope(deptAlias = "su", userAlias = "su")
+    @PostMapping("/list")
+    public PageDataInfo listPost(@RequestBody(required = false) SysUser body,
+                                 @RequestParam(value = "conditionsJson", required = false) String conditionsJsonParam) {
+        return doUserList(mergeConditionsJson(body, conditionsJsonParam));
+    }
+
+    /** 合并 query/body 上的 conditionsJson（Header 仍由 prepare 兜底） */
+    private static SysUser mergeConditionsJson(SysUser sysUser, String conditionsJsonParam) {
+        if (sysUser == null) {
+            sysUser = new SysUser();
+        }
+        if (StringUtils.isEmpty(sysUser.getConditionsJson()) && StringUtils.isNotEmpty(conditionsJsonParam)) {
+            sysUser.setConditionsJson(conditionsJsonParam);
+        }
+        return sysUser;
+    }
+
+    private PageDataInfo doUserList(SysUser sysUser) {
         // 部门树筛选会先查子孙部门；必须在 startPage 之前完成，否则 PageHelper 分页失效
         sysUserService.prepareDeptFilter(sysUser);
         startPage();
@@ -390,7 +418,7 @@ public class SysUserController extends BaseController {
      */
     @RequiresPermissions("system:user:export")
     @Log(title = "导出系统用户表", businessType = BusinessType.EXPORT)
-    @DataScope
+    @DataScope(deptAlias = "su", userAlias = "su")
     @GetMapping("/export")
     public Result export(SysUser sysUser)
     {
