@@ -17,10 +17,6 @@ public interface ResourceMetaDataMapper {
     */
     List<ResourceMetaData> selectResourceMetaDataList(ResourceMetaData resourceMetaData);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<ResourceMetaData> selectUnionResourceMetaDataList(ResourceMetaData resourceMetaData);
 
     /**
     * 根据Id查询单条数据

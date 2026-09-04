@@ -18,20 +18,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpAboutWebVo">
-        select id, gp_name, gp_title, gp_content, gp_web_name, gp_web_title, gp_web_info, gp_web_icp, gp_web_beian, create_time from gp_about_web
+        select gaw.id,gaw.gp_name,gaw.gp_title,gaw.gp_content,gaw.gp_web_name,gaw.gp_web_title,gaw.gp_web_info,gaw.gp_web_icp,gaw.gp_web_beian,gaw.create_time from gp_about_web gaw
     </sql>
 
     <select id="selectGpAboutWebList" parameterType="GpAboutWeb" resultMap="GpAboutWebResult">
         <include refid="selectGpAboutWebVo"/>
         <where>
-            <if test="gpName != null  and gpName != ''"> and gp_name like concat('%', #{gpName}, '%')</if>
-            <if test="gpTitle != null  and gpTitle != ''"> and gp_title = #{gpTitle}</if>
-            <if test="gpContent != null  and gpContent != ''"> and gp_content = #{gpContent}</if>
-            <if test="gpWebName != null  and gpWebName != ''"> and gp_web_name like concat('%', #{gpWebName}, '%')</if>
-            <if test="gpWebTitle != null  and gpWebTitle != ''"> and gp_web_title = #{gpWebTitle}</if>
-            <if test="gpWebInfo != null  and gpWebInfo != ''"> and gp_web_info = #{gpWebInfo}</if>
-            <if test="gpWebIcp != null  and gpWebIcp != ''"> and gp_web_icp = #{gpWebIcp}</if>
-            <if test="gpWebBeian != null  and gpWebBeian != ''"> and gp_web_beian = #{gpWebBeian}</if>
+            <if test="gpName != null  and gpName != ''"> and gaw.gp_name like concat('%', #{gpName}, '%')</if>
+            <if test="gpTitle != null  and gpTitle != ''"> and gaw.gp_title = #{gpTitle}</if>
+            <if test="gpContent != null  and gpContent != ''"> and gaw.gp_content = #{gpContent}</if>
+            <if test="gpWebName != null  and gpWebName != ''"> and gaw.gp_web_name like concat('%', #{gpWebName}, '%')</if>
+            <if test="gpWebTitle != null  and gpWebTitle != ''"> and gaw.gp_web_title = #{gpWebTitle}</if>
+            <if test="gpWebInfo != null  and gpWebInfo != ''"> and gaw.gp_web_info = #{gpWebInfo}</if>
+            <if test="gpWebIcp != null  and gpWebIcp != ''"> and gaw.gp_web_icp = #{gpWebIcp}</if>
+            <if test="gpWebBeian != null  and gpWebBeian != ''"> and gaw.gp_web_beian = #{gpWebBeian}</if>
         </where>
     </select>
 
@@ -53,7 +53,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectGpAboutWebById" parameterType="Integer" resultMap="GpAboutWebResult">
         <include refid="selectGpAboutWebVo"/>
-        where id = #{id}
+        where gaw.id = #{id}
     </select>
 
     <insert id="insertGpAboutWeb" parameterType="GpAboutWeb" useGeneratedKeys="true" keyProperty="id">

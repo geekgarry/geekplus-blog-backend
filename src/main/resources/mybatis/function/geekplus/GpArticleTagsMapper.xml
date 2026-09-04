@@ -17,20 +17,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpArticleTagsVo">
-        select id, tag_name, tag_info from gp_article_tags
+        select gat.id,gat.tag_name,gat.tag_info from gp_article_tags gat
     </sql>
 
     <select id="selectGpArticleTagsList" parameterType="GpArticleTags" resultMap="GpArticleTagsResult">
         <include refid="selectGpArticleTagsVo"/>
         <where>
-            <if test="tagName != null  and tagName != ''"> and tag_name like concat('%', #{tagName}, '%')</if>
-            <if test="tagInfo != null  and tagInfo != ''"> and tag_info = #{tagInfo}</if>
+            <if test="tagName != null  and tagName != ''"> and gat.tag_name like concat('%', #{tagName}, '%')</if>
+            <if test="tagInfo != null  and tagInfo != ''"> and gat.tag_info = #{tagInfo}</if>
         </where>
     </select>
 
     <select id="selectGpArticleTagsById" parameterType="Long" resultMap="GpArticleTagsResult">
         <include refid="selectGpArticleTagsVo"/>
-        where id = #{id}
+        where gat.id = #{id}
     </select>
 
     <insert id="insertGpArticleTags" parameterType="GpArticleTags" useGeneratedKeys="true" keyProperty="id">

@@ -53,10 +53,6 @@ public interface UsersService {
     */
     public List<Users> selectUsersList(Users users);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<Users> selectUnionUsersList(Users users);
 
     /**
      * 用作客户端用户登录

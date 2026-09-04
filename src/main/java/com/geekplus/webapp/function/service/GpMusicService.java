@@ -53,10 +53,6 @@ public interface GpMusicService {
     */
     public List<GpMusic> selectGpMusicList(GpMusic gpMusic);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<GpMusic> selectUnionGpMusicList(GpMusic gpMusic);
 
     /**
     * 根据Id查询单条数据

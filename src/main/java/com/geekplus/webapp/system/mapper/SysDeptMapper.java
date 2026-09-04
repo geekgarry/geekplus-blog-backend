@@ -84,10 +84,6 @@ public interface SysDeptMapper {
      */
     public List<SysDept> selectChildrenDeptById(Long deptId);
 
-    /**
-     * 查询全部,联合查询使用
-     */
-    List<SysDept> selectUnionSysDeptList(SysDept sysDept);
 
     /**
      * 部门树查询使用

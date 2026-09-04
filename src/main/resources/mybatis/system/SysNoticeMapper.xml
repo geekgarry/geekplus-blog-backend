@@ -19,14 +19,7 @@
     </resultMap>
 
     <!---->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        notice_id,notice_title,notice_content,notifier,notice_type,notice_url,create_time,create_by,update_time,update_by
-         from sys_notice
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sn）；列表/详情共用 -->
     <sql id="selectSysNoticeVo">
         select
             sn.notice_id,sn.notice_title,sn.notice_content,sn.notifier,sn.notice_type,sn.notice_url,sn.create_time,sn.create_by,sn.update_time,sn.update_by
@@ -35,43 +28,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysNoticeList" parameterType="SysNotice" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="noticeId !=null">
-                        AND notice_id = #{noticeId}
-                    </if>
-                    <if test="noticeTitle !=null and noticeTitle != ''">
-                        AND notice_title = #{noticeTitle}
-                    </if>
-                    <if test="noticeContent !=null and noticeContent!= ''">
-                        AND notice_content = #{noticeContent}
-                    </if>
-                    <if test="notifier !=null">
-                        AND notifier = #{notifier}
-                    </if>
-                    <if test="noticeType !=null">
-                        AND notice_type = #{noticeType}
-                    </if>
-                    <if test="noticeUrl !=null">
-                        AND notice_url = #{noticeUrl}
-                    </if>
-                    <if test="createTime !=null">
-                        AND create_time = #{createTime}
-                    </if>
-                    <if test="createBy !=null and createBy != ''">
-                        AND create_by = #{createBy}
-                    </if>
-                    <if test="updateTime !=null">
-                        AND update_time = #{updateTime}
-                    </if>
-                    <if test="updateBy !=null">
-                        AND update_by = #{updateBy}
-                    </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysNoticeList" parameterType="SysNotice" resultMap="BaseResultMap">
         <include refid="selectSysNoticeVo"/>
         <where>
                     <if test="noticeId !=null">
@@ -109,9 +65,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysNoticeById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysNoticeVo"/>
         where
-                notice_id = #{noticeId}
+                sn.notice_id = #{noticeId}
     </select>
 
     <!--添加操作SQL-->

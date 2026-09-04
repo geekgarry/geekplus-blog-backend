@@ -161,14 +161,7 @@
 <!--    </select>-->
 
     <!--代码生成业务表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        table_id,table_name,table_comment,class_name,model_name,tpl_category,package_name,module_name,base_package_name,business_name,function_name,function_author,other,create_by,create_time,update_by,update_time,remark
-         from gen_table
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 gt）；列表/详情共用 -->
     <sql id="selectGenTableVo">
         select
             gt.table_id,gt.table_name,gt.table_comment,gt.class_name,gt.model_name,gt.tpl_category,gt.package_name,gt.module_name,gt.base_package_name,gt.business_name,gt.function_name,gt.function_author,gt.other,gt.create_by,gt.create_time,gt.update_by,gt.update_time,gt.remark
@@ -177,67 +170,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectGenTableList" parameterType="com.geekplus.webapp.tool.generator.entity.TableInfo" resultMap="tableInfoResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-            <if test="tableId !=null ">
-                AND table_id = #{tableId,jdbcType=INTEGER}
-            </if>
-            <if test="tableName !=null  and tableName != ''">
-                AND table_name = #{tableName,jdbcType=VARCHAR}
-            </if>
-            <if test="tableComment !=null  and tableComment != ''">
-                AND table_comment = #{tableComment,jdbcType=VARCHAR}
-            </if>
-            <if test="className !=null  and className != ''">
-                AND class_name = #{className,jdbcType=VARCHAR}
-            </if>
-            <if test="modelName !=null  and modelName != ''">
-                AND model_name = #{modelName,jdbcType=VARCHAR}
-            </if>
-            <if test="tplCategory !=null  and tplCategory != ''">
-                AND tpl_category = #{tplCategory,jdbcType=VARCHAR}
-            </if>
-            <if test="packageName !=null  and packageName != ''">
-                AND package_name = #{packageName,jdbcType=VARCHAR}
-            </if>
-            <if test="moduleName !=null  and moduleName != ''">
-                AND module_name = #{moduleName,jdbcType=VARCHAR}
-            </if>
-            <if test="basePackageName !=null  and basePackageName != ''">
-                AND base_package_name = #{basePackageName,jdbcType=VARCHAR}
-            </if>
-            <if test="businessName !=null  and businessName != ''">
-                AND business_name = #{businessName,jdbcType=VARCHAR}
-            </if>
-            <if test="functionName !=null  and functionName != ''">
-                AND function_name = #{functionName,jdbcType=VARCHAR}
-            </if>
-            <if test="functionAuthor !=null  and functionAuthor != ''">
-                AND function_author = #{functionAuthor,jdbcType=VARCHAR}
-            </if>
-            <if test="other !=null  and other != ''">
-                AND other = #{other,jdbcType=VARCHAR}
-            </if>
-            <if test="createBy !=null  and createBy != ''">
-                AND create_by = #{createBy,jdbcType=VARCHAR}
-            </if>
-            <if test="createTime !=null ">
-                AND create_time = #{createTime,jdbcType=TIMESTAMP}
-            </if>
-            <if test="updateBy !=null  and updateBy != ''">
-                AND update_by = #{updateBy,jdbcType=VARCHAR}
-            </if>
-            <if test="updateTime !=null ">
-                AND update_time = #{updateTime,jdbcType=TIMESTAMP}
-            </if>
-            <if test="remark !=null  and remark != ''">
-                AND remark = #{remark,jdbcType=VARCHAR}
-            </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionGenTableList" parameterType="com.geekplus.webapp.tool.generator.entity.TableInfo" resultMap="tableInfoResultMap">
         <include refid="selectGenTableVo"/>
         <where>
             <if test="tableId !=null ">
@@ -299,15 +231,15 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectGenTableById" parameterType="Long" resultMap="tableInfoResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectGenTableVo"/>
         where
-        table_id = #{tableId}
+        gt.table_id = #{tableId}
     </select>
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectGenTableByIds" parameterType="Long" resultMap="tableInfoResultMap">
-        <include refid="baseSelectVo"/>
-        where table_id in
+        <include refid="selectGenTableVo"/>
+        where gt.table_id in
         <foreach item="tableId" collection="array" open="(" separator="," close=")">
             #{tableId}
         </foreach>

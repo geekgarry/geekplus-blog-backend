@@ -16,10 +16,6 @@ public interface SysQuartzJobService {
     */
     public List<SysQuartzJob> querySysQuartzJobList(SysQuartzJob sysQuartzJob);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysQuartzJob> queryUnionSysQuartzJobList(SysQuartzJob sysQuartzJob);
 
     /**
     * 根据Id查询单条数据

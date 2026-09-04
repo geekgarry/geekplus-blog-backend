@@ -16,7 +16,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpFriendlyLinkVo">
-        select id, link_url, link_name, link_intro, app_reason, is_display, create_time, update_time from gp_friendly_link
+        select gfl.id,gfl.link_url,gfl.link_name,gfl.link_intro,gfl.app_reason,gfl.is_display,gfl.create_time,gfl.update_time from gp_friendly_link gfl
     </sql>
 
 <!--    首页显示友情链接，is_display等于1-->
@@ -29,19 +29,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectGpFriendlyLinkList" parameterType="GpFriendlyLink" resultMap="GpFriendlyLinkResult">
         <include refid="selectGpFriendlyLinkVo"/>
         <where>
-            <if test="linkUrl != null  and linkUrl != ''"> and link_url = #{linkUrl}</if>
-            <if test="linkName != null  and linkName != ''"> and link_name like concat('%', #{linkName}, '%')</if>
-            <if test="linkIntro != null  and linkIntro != ''"> and link_intro = #{linkIntro}</if>
-            <if test="appReason != null  and appReason != ''"> and app_reason = #{appReason}</if>
-            <if test="isDisplay != null  and isDisplay != ''"> and is_display = #{isDisplay}</if>
-<!--            <if test="createTime != null  and createTime != ''"> and create_time = #{createTime}</if>-->
-<!--            <if test="updateTime != null  and updateTime != ''"> and update_time = #{updateTime}</if>-->
+            <if test="linkUrl != null  and linkUrl != ''"> and gfl.link_url = #{linkUrl}</if>
+            <if test="linkName != null  and linkName != ''"> and gfl.link_name like concat('%', #{linkName}, '%')</if>
+            <if test="linkIntro != null  and linkIntro != ''"> and gfl.link_intro = #{linkIntro}</if>
+            <if test="appReason != null  and appReason != ''"> and gfl.app_reason = #{appReason}</if>
+            <if test="isDisplay != null  and isDisplay != ''"> and gfl.is_display = #{isDisplay}</if>
+<!--            <if test="createTime != null  and createTime != ''"> and gfl.create_time = #{createTime}</if>-->
+<!--            <if test="updateTime != null  and updateTime != ''"> and gfl.update_time = #{updateTime}</if>-->
         </where>
     </select>
 
     <select id="selectGpFriendlyLinkById" parameterType="Long" resultMap="GpFriendlyLinkResult">
         <include refid="selectGpFriendlyLinkVo"/>
-        where id = #{id}
+        where gfl.id = #{id}
     </select>
 
     <insert id="insertGpFriendlyLink" parameterType="GpFriendlyLink" useGeneratedKeys="true" keyProperty="id">

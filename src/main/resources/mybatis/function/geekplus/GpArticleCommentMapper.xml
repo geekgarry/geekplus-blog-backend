@@ -44,7 +44,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpArticleCommentVo">
-        select id, reply_id, name, email, website, content, topic_id, topic_type, create_time, user_id, parent_id, reply_name, like_count, is_display from gp_article_comment
+        select gac.id,gac.reply_id,gac.name,gac.email,gac.website,gac.content,gac.topic_id,gac.topic_type,gac.create_time,gac.user_id,gac.parent_id,gac.reply_name,gac.like_count,gac.is_display from gp_article_comment gac
     </sql>
 
 <!--    用于前端网站，单张表：用在网站查询获取用户评论，考虑到两种情况，一种是用户网站留言topic_id为null或空值，一种是用户文章留言topic_id等于文章的ID-->
@@ -85,7 +85,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!--子查询获取回复的信息，后端管理系统返回数据使用-->
     <select id="listReplyArticleComment" resultMap="GpUserCommentResult">
         <include refid="selectGpArticleCommentVo"/>
-        where parent_id=#{id} ORDER BY create_time ASC
+        where gac.parent_id=#{id} ORDER BY create_time ASC
 	</select>
 
     <select id="selectChildrenByParentIds" resultMap="GpUserCommentResult">
@@ -152,7 +152,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectGpArticleCommentById" parameterType="Long" resultMap="GpUserCommentResult">
         <include refid="selectGpArticleCommentVo"/>
-        where id = #{id}
+        where gac.id = #{id}
     </select>
 
     <select id="selectArticleComment" >

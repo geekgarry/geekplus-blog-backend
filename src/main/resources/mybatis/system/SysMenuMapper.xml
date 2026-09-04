@@ -27,14 +27,7 @@
     </resultMap>
 
     <!--系统菜单权限-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        menu_id,menu_name,parent_id,order_num,path,component,is_frame,is_cache,menu_type,visible,status,perms,icon,create_by,create_time,update_by,update_time,remark
-         from sys_menu
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sm）；列表/详情共用 -->
     <sql id="selectSysMenuVo">
         select
             sm.menu_id,sm.menu_name,sm.parent_id,sm.order_num,sm.path,sm.component,sm.is_frame,sm.is_cache,sm.menu_type,sm.visible,sm.status,sm.perms,sm.icon,sm.create_by,sm.create_time,sm.update_by,sm.update_time,sm.remark
@@ -43,76 +36,12 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysMenuList" parameterType="SysMenu" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="menuId !=null">
-                        AND menu_id = #{menuId}
-                    </if>
-                    <if test="menuName !=null and menuName != ''">
-                        AND menu_name = #{menuName}
-                    </if>
-                    <if test="parentId !=null">
-                        AND parent_id = #{parentId}
-                    </if>
-                    <if test="orderNum !=null">
-                        AND order_num = #{orderNum}
-                    </if>
-                    <if test="path !=null">
-                        AND path = #{path}
-                    </if>
-                    <if test="component !=null">
-                        AND component = #{component}
-                    </if>
-                    <if test="isFrame !=null">
-                        AND is_frame = #{isFrame}
-                    </if>
-                    <if test="isCache !=null">
-                        AND is_cache = #{isCache}
-                    </if>
-                    <if test="menuType !=null">
-                        AND menu_type = #{menuType}
-                    </if>
-                    <if test="visible !=null">
-                        AND visible = #{visible}
-                    </if>
-                    <if test="status !=null">
-                        AND status = #{status}
-                    </if>
-                    <if test="perms !=null">
-                        AND perms = #{perms}
-                    </if>
-                    <if test="icon !=null">
-                        AND icon = #{icon}
-                    </if>
-                    <if test="createBy !=null">
-                        AND create_by = #{createBy}
-                    </if>
-                    <if test="createTime !=null">
-                        AND create_time = #{createTime}
-                    </if>
-                    <if test="updateBy !=null">
-                        AND update_by = #{updateBy}
-                    </if>
-                    <if test="updateTime !=null">
-                        AND update_time = #{updateTime}
-                    </if>
-                    <if test="remark !=null">
-                        AND remark = #{remark}
-                    </if>
-        </where>
-    </select>
-
-    <select id="selectSysMenuTreeList" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-    </select>
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysMenuList" parameterType="SysMenu" resultMap="BaseResultMap">
         <include refid="selectSysMenuVo"/>
         <where>
                     <if test="menuId !=null">
                         AND sm.menu_id = #{menuId}
                     </if>
-                    <if test="menuName !=null">
+                    <if test="menuName !=null and menuName != ''">
                         AND sm.menu_name = #{menuName}
                     </if>
                     <if test="parentId !=null">
@@ -166,11 +95,15 @@
         </where>
     </select>
 
+    <select id="selectSysMenuTreeList" resultMap="BaseResultMap">
+        <include refid="selectSysMenuVo"/>
+    </select>
+
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysMenuById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysMenuVo"/>
         where
-                menu_id = #{menuId}
+                sm.menu_id = #{menuId}
     </select>
 
     <!--添加操作SQL-->

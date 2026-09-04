@@ -76,12 +76,6 @@ public class UsersServiceImpl implements UsersService {
         return usersMapper.selectUsersList(users);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<Users> selectUnionUsersList(Users users){
-        return usersMapper.selectUnionUsersList(users);
-    }
 
     /**
      * 用作客户端用户登录

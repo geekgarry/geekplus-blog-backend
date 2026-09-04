@@ -21,14 +21,7 @@
     </resultMap>
 
     <!--数据字典数据项-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        id,dict_sort,dict_label,dict_value,dict_code,is_default,status,create_by,create_time,update_by,update_time,remark
-         from sys_dict_data
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sdd）；列表/详情共用 -->
     <sql id="selectSysDictDataVo">
         select
         sdd.id,sdd.dict_sort,sdd.dict_label,sdd.dict_value,sdd.dict_code,sdd.is_default,sdd.status,sdd.create_by,sdd.create_time,sdd.update_by,sdd.update_time,sdd.remark
@@ -37,49 +30,55 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysDictDataList" parameterType="SysDictData" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysDictDataVo"/>
         <where>
         <if test="id !=null ">
-         AND id = #{id,jdbcType=INTEGER}
+         AND sdd.id = #{id,jdbcType=INTEGER}
         </if>
         <if test="dictSort !=null ">
-         AND dict_sort = #{dictSort,jdbcType=INTEGER}
+         AND sdd.dict_sort = #{dictSort,jdbcType=INTEGER}
         </if>
         <if test="dictLabel !=null  and dictLabel != ''">
-         AND dict_label = #{dictLabel,jdbcType=VARCHAR}
+         AND sdd.dict_label = #{dictLabel,jdbcType=VARCHAR}
         </if>
         <if test="dictValue !=null  and dictValue != ''">
-         AND dict_value = #{dictValue,jdbcType=VARCHAR}
+         AND sdd.dict_value = #{dictValue,jdbcType=VARCHAR}
         </if>
         <if test="dictCode !=null  and dictCode != ''">
-         AND dict_code = #{dictCode,jdbcType=VARCHAR}
+         AND sdd.dict_code = #{dictCode,jdbcType=VARCHAR}
         </if>
         <if test="isDefault !=null  and isDefault != ''">
-         AND is_default = #{isDefault,jdbcType=CHAR}
+         AND sdd.is_default = #{isDefault,jdbcType=CHAR}
         </if>
         <if test="status !=null  and status != ''">
-         AND status = #{status,jdbcType=CHAR}
+         AND sdd.status = #{status,jdbcType=CHAR}
         </if>
         <if test="createBy !=null  and createBy != ''">
-         AND create_by = #{createBy,jdbcType=VARCHAR}
+         AND sdd.create_by = #{createBy,jdbcType=VARCHAR}
         </if>
         <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
+         AND sdd.create_time = #{createTime,jdbcType=TIMESTAMP}
         </if>
         <if test="updateBy !=null  and updateBy != ''">
-         AND update_by = #{updateBy,jdbcType=VARCHAR}
+         AND sdd.update_by = #{updateBy,jdbcType=VARCHAR}
         </if>
         <if test="updateTime !=null ">
-         AND update_time = #{updateTime,jdbcType=TIMESTAMP}
+         AND sdd.update_time = #{updateTime,jdbcType=TIMESTAMP}
         </if>
         <if test="remark !=null  and remark != ''">
-         AND remark = #{remark,jdbcType=VARCHAR}
+         AND sdd.remark = #{remark,jdbcType=VARCHAR}
         </if>
         </where>
     </select>
 
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionSysDictDataList" parameterType="SysDictData" resultMap="BaseResultMap">
+    <!--单条数据或详情查询操作SQL-->
+    <select id="selectSysDictDataById" parameterType="Long" resultMap="BaseResultMap">
+        <include refid="selectSysDictDataVo"/>
+        where
+        sdd.id = #{id}
+    </select>
+
+    <select id="selectDictDataList" parameterType="SysDictData" resultMap="BaseResultMap">
         <include refid="selectSysDictDataVo"/>
         <where>
         <if test="dictId !=null ">
@@ -122,29 +121,6 @@
          AND sdd.remark = #{remark,jdbcType=VARCHAR}
         </if>
         </where>
-    </select>
-
-    <!--单条数据或详情查询操作SQL-->
-    <select id="selectSysDictDataById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        where
-        id = #{id}
-    </select>
-
-    <select id="selectDictDataList" parameterType="SysDictData" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-            <if test="dictCode != null and dictCode != ''">
-                AND dict_code = #{dictCode}
-            </if>
-            <if test="dictLabel != null and dictLabel != ''">
-                AND dict_label like concat('%', #{dictLabel}, '%')
-            </if>
-            <if test="status != null and status != ''">
-                AND status = #{status}
-            </if>
-        </where>
-        order by dict_sort asc
     </select>
 
     <!--添加操作SQL-->
@@ -197,7 +173,6 @@
         delete FROM sys_dict_data where id = #{id}
     </delete>
 
-
     <!--批量删除操作SQL-->
     <delete id="deleteSysDictDataByIds" parameterType="Long">
         delete FROM sys_dict_data where id in
@@ -205,7 +180,6 @@
              #{id}
         </foreach>
     </delete>
-
 
     <!--更新操作SQL-->
     <update id="updateSysDictData" parameterType="SysDictData">

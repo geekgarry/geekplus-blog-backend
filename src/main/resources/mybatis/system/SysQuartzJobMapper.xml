@@ -20,14 +20,7 @@
     </resultMap>
 
     <!--quartz系统调度任务-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select 
-        id,create_by,create_time,del_flag,update_by,update_time,job_class_name,cron_expression,parameter,description,status
-         from sys_quartz_job
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sqj）；列表/详情共用 -->
     <sql id="selectSysQuartzJobVo">
         select 
         sqj.id,sqj.create_by,sqj.create_time,sqj.del_flag,sqj.update_by,sqj.update_time,sqj.job_class_name,sqj.cron_expression,sqj.parameter,sqj.description,sqj.status
@@ -36,46 +29,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysQuartzJobList" parameterType="SysQuartzJob" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="id !=null  and id != ''">
-         AND id = #{id,jdbcType=VARCHAR}
-        </if>
-        <if test="createBy !=null  and createBy != ''">
-         AND create_by = #{createBy,jdbcType=VARCHAR}
-        </if>
-        <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="delFlag !=null ">
-         AND del_flag = #{delFlag,jdbcType=INTEGER}
-        </if>
-        <if test="updateBy !=null  and updateBy != ''">
-         AND update_by = #{updateBy,jdbcType=VARCHAR}
-        </if>
-        <if test="updateTime !=null ">
-         AND update_time = #{updateTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="jobClassName !=null  and jobClassName != ''">
-         AND job_class_name = #{jobClassName,jdbcType=VARCHAR}
-        </if>
-        <if test="cronExpression !=null  and cronExpression != ''">
-         AND cron_expression = #{cronExpression,jdbcType=VARCHAR}
-        </if>
-        <if test="parameter !=null  and parameter != ''">
-         AND parameter = #{parameter,jdbcType=VARCHAR}
-        </if>
-        <if test="description !=null  and description != ''">
-         AND description = #{description,jdbcType=VARCHAR}
-        </if>
-        <if test="status !=null ">
-         AND status = #{status,jdbcType=INTEGER}
-        </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionSysQuartzJobList" parameterType="SysQuartzJob" resultMap="BaseResultMap">
         <include refid="selectSysQuartzJobVo"/>
         <where>
         <if test="id !=null  and id != ''">
@@ -116,9 +69,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysQuartzJobById" parameterType="String" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysQuartzJobVo"/>
         where
-        id = #{id}
+        sqj.id = #{id}
     </select>
 
     <!--添加操作SQL-->

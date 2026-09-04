@@ -89,12 +89,6 @@ public class SysNoticeServiceImpl implements SysNoticeService {
         return sysNoticeMapper.selectSysNoticeList(sysNotice);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysNotice> selectUnionSysNoticeList(SysNotice sysNotice){
-        return sysNoticeMapper.selectUnionSysNoticeList(sysNotice);
-    }
 
     /**
     * 根据Id查询单条数据

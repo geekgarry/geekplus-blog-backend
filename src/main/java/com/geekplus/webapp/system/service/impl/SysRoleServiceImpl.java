@@ -76,12 +76,6 @@ public class SysRoleServiceImpl implements SysRoleService {
         return sysRoleMapper.selectSysRoleList(sysRole);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysRole> selectUnionSysRoleList(SysRole sysRole){
-        return sysRoleMapper.selectUnionSysRoleList(sysRole);
-    }
 
     /**
     * 根据Id查询单条数据

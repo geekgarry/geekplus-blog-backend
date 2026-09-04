@@ -19,14 +19,7 @@
     </resultMap>
 
     <!--用户预约任务时间表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        id,user_id,schedule_at,payload,status,create_time,update_time,del_flag,description,job_type
-         from user_appointment
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 ua）；列表/详情共用 -->
     <sql id="selectUserAppointmentVo">
         select
         ua.id,ua.user_id,ua.schedule_at,ua.payload,ua.status,ua.create_time,ua.update_time,ua.del_flag,ua.description,ua.job_type
@@ -35,44 +28,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectUserAppointmentList" parameterType="UserAppointment" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="id !=null  and id != ''">
-         AND id = #{id,jdbcType=VARCHAR}
-        </if>
-        <if test="userId !=null  and userId != ''">
-         AND user_id = #{userId,jdbcType=VARCHAR}
-        </if>
-        <if test="scheduleAt !=null ">
-         AND schedule_at = #{scheduleAt,jdbcType=TIMESTAMP}
-        </if>
-        <if test="payload !=null  and payload != ''">
-         AND payload = #{payload,jdbcType=VARCHAR}
-        </if>
-        <if test="status !=null  and status != ''">
-         AND status = #{status,jdbcType=CHAR}
-        </if>
-        <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="updateTime !=null ">
-         AND update_time = #{updateTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="delFlag !=null ">
-         AND del_flag = #{delFlag,jdbcType=INTEGER}
-        </if>
-        <if test="description !=null  and description != ''">
-         AND description = #{description,jdbcType=VARCHAR}
-        </if>
-        <if test="jobType !=null  and jobType != ''">
-         AND job_type = #{jobType,jdbcType=CHAR}
-        </if>
-        </where>
-        ORDER BY create_time DESC
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionUserAppointmentList" parameterType="UserAppointment" resultMap="BaseResultMap">
         <include refid="selectUserAppointmentVo"/>
         <where>
         <if test="id !=null  and id != ''">
@@ -111,9 +66,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectUserAppointmentById" parameterType="String" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectUserAppointmentVo"/>
         where
-        id = #{id}
+        ua.id = #{id}
     </select>
 
     <!--添加操作SQL-->
@@ -217,7 +172,7 @@
 
     <!--查询用户自己的预约任务-->
     <select id="userFindAllByUserId" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-         where user_id= #{userId} and del_flag = 0 ORDER BY create_time DESC
+        <include refid="selectUserAppointmentVo"/>
+         where ua.user_id= #{userId} and ua.del_flag = 0 ORDER BY create_time DESC
     </select>
 </mapper>

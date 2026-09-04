@@ -105,10 +105,6 @@ public interface TableMapper {
 	 */
 	List<TableInfo> selectGenTableList(TableInfo tableInfo);
 
-	/**
-	 * 查询全部,联合查询使用
-	 */
-	List<TableInfo> selectUnionGenTableList(TableInfo tableInfo);
 
 	/**
 	 * 根据Id查询单条数据

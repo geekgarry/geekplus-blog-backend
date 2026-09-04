@@ -52,10 +52,6 @@ public interface SysConfigMapper {
     */
     List<SysConfig> selectSysConfigList(SysConfig sysConfig);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysConfig> selectUnionSysConfigList(SysConfig sysConfig);
 
     /**
     * 根据Id查询单条数据

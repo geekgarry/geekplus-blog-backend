@@ -54,10 +54,6 @@ public interface SysLoginLogService {
     */
     public List<SysLoginLog> selectSysLoginLogList(SysLoginLog sysLoginLog);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysLoginLog> selectUnionSysLoginLogList(SysLoginLog sysLoginLog);
 
     /**
     * 根据Id查询单条数据

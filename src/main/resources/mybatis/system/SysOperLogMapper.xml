@@ -27,14 +27,7 @@
     </resultMap>
 
     <!--系统操作日志-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        oper_id,title,business_type,method,request_method,operator_type,oper_name,group_name,oper_url,oper_ip,oper_browser,oper_os,oper_location,oper_param,json_result,status,error_msg,oper_time
-         from sys_oper_log
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sol）；列表/详情共用 -->
     <sql id="selectSysOperLogVo">
         select
             sol.oper_id,sol.title,sol.business_type,sol.method,sol.request_method,sol.operator_type,sol.oper_name,sol.group_name,sol.oper_url,sol.oper_ip,sol.oper_browser,sol.oper_os,sol.oper_location,sol.oper_param,sol.json_result,sol.status,sol.error_msg,sol.oper_time
@@ -43,68 +36,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysOperLogList" parameterType="SysOperLog" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="operId !=null">
-                        AND oper_id = #{operId}
-                    </if>
-                    <if test="title !=null">
-                        AND title = #{title}
-                    </if>
-                    <if test="businessType !=null">
-                        AND business_type = #{businessType}
-                    </if>
-                    <if test="method !=null">
-                        AND method = #{method}
-                    </if>
-                    <if test="requestMethod !=null">
-                        AND request_method = #{requestMethod}
-                    </if>
-                    <if test="operatorType !=null">
-                        AND operator_type = #{operatorType}
-                    </if>
-                    <if test="operName !=null">
-                        AND oper_name = #{operName}
-                    </if>
-                    <if test="groupName !=null">
-                        AND group_name = #{groupName}
-                    </if>
-                    <if test="operUrl !=null">
-                        AND oper_url = #{operUrl}
-                    </if>
-                    <if test="operIp !=null">
-                        AND oper_ip = #{operIp}
-                    </if>
-                    <if test="operBrowser !=null and operBrowser !=''">
-                        AND oper_browser = #{operBrowser}
-                    </if>
-                    <if test="operOs !=null and operOs !=''">
-                        AND oper_os = #{operOs}
-                    </if>
-                    <if test="operLocation !=null">
-                        AND oper_location = #{operLocation}
-                    </if>
-                    <if test="operParam !=null">
-                        AND oper_param = #{operParam}
-                    </if>
-                    <if test="jsonResult !=null">
-                        AND json_result = #{jsonResult}
-                    </if>
-                    <if test="status !=null">
-                        AND status = #{status}
-                    </if>
-                    <if test="errorMsg !=null">
-                        AND error_msg = #{errorMsg}
-                    </if>
-                    <if test="operTime !=null">
-                        AND oper_time = #{operTime}
-                    </if>
-        </where>
-        order by oper_time desc
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysOperLogList" parameterType="SysOperLog" resultMap="BaseResultMap">
         <include refid="selectSysOperLogVo"/>
         <where>
             <if test="operId !=null">
@@ -167,9 +98,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysOperLogById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysOperLogVo"/>
         where
-                oper_id = #{operId}
+                sol.oper_id = #{operId}
     </select>
 
     <!--查询访问地址的统计数量-->

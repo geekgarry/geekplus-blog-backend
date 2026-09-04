@@ -53,10 +53,6 @@ public interface SysNoticeService {
     */
     public List<SysNotice> selectSysNoticeList(SysNotice sysNotice);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysNotice> selectUnionSysNoticeList(SysNotice sysNotice);
 
     /**
     * 根据Id查询单条数据

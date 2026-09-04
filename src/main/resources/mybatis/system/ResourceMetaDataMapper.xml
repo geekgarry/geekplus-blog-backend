@@ -20,14 +20,7 @@
     </resultMap>
 
     <!--资源数据表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        id,original_file_name,stored_file_name,actual_storage_path,logical_path,content_type,owner_user_id,related_entity_id,access_level,is_available,entity_type
-         from resource_meta_data
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 rmd）；列表/详情共用 -->
     <sql id="selectResourceMetaDataVo">
         select
         rmd.id,rmd.original_file_name,rmd.stored_file_name,rmd.actual_storage_path,rmd.logical_path,rmd.content_type,rmd.owner_user_id,rmd.related_entity_id,rmd.access_level,rmd.is_available,rmd.entity_type
@@ -35,47 +28,7 @@
     </sql>
 
     <!--数据查询操作SQL(非联合查询)-->
-    <select id="selectResourceMetaDataList" parameterType="ResourceMetaData" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="id !=null ">
-         AND id = #{id,jdbcType=INTEGER}
-        </if>
-        <if test="originalFileName !=null  and originalFileName != ''">
-         AND original_file_name = #{originalFileName,jdbcType=VARCHAR}
-        </if>
-        <if test="storedFileName !=null  and storedFileName != ''">
-         AND stored_file_name = #{storedFileName,jdbcType=VARCHAR}
-        </if>
-        <if test="actualStoragePath !=null  and actualStoragePath != ''">
-         AND actual_storage_path = #{actualStoragePath,jdbcType=VARCHAR}
-        </if>
-        <if test="logicalPath !=null  and logicalPath != ''">
-         AND logical_path = #{logicalPath,jdbcType=VARCHAR}
-        </if>
-        <if test="contentType !=null  and contentType != ''">
-         AND content_type = #{contentType,jdbcType=VARCHAR}
-        </if>
-        <if test="ownerUserId !=null ">
-         AND owner_user_id = #{ownerUserId,jdbcType=INTEGER}
-        </if>
-        <if test="relatedEntityId !=null  and relatedEntityId != ''">
-         AND related_entity_id = #{relatedEntityId,jdbcType=VARCHAR}
-        </if>
-        <if test="accessLevel !=null  and accessLevel != ''">
-         AND access_level = #{accessLevel,jdbcType=VARCHAR}
-        </if>
-        <if test="isAvailable !=null  and isAvailable != ''">
-         AND is_available = #{isAvailable,jdbcType=INTEGER}
-        </if>
-        <if test="entityType !=null ">
-         AND entity_type = #{entityType,jdbcType=INTEGER}
-        </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionResourceMetaDataList" parameterType="ResourceMetaDataDto" resultMap="BaseResultMap">
+    <select id="selectResourceMetaDataList" parameterType="ResourceMetaDataDto" resultMap="BaseResultMap">
         <include refid="selectResourceMetaDataVo"/>
         <where>
         <if test="id !=null ">
@@ -116,9 +69,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectResourceMetaDataById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectResourceMetaDataVo"/>
         where
-        id = #{id}
+        rmd.id = #{id}
     </select>
 
     <!--添加操作SQL-->
@@ -168,7 +121,6 @@
     <delete id="deleteResourceMetaDataById" parameterType="Long">
         delete FROM resource_meta_data where id = #{id}
     </delete>
-
 
     <!--批量删除操作SQL-->
     <delete id="deleteResourceMetaDataByIds" parameterType="Long">

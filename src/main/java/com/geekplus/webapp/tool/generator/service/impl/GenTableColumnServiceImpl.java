@@ -75,12 +75,6 @@ public class GenTableColumnServiceImpl implements GenTableColumnService {
         return genTableColumnMapper.selectGenTableColumnList(tableColumnInfo);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<TableColumnInfo> selectUnionGenTableColumnList(TableColumnInfo tableColumnInfo){
-        return genTableColumnMapper.selectUnionGenTableColumnList(tableColumnInfo);
-    }
 
     /**
     * 根据Id查询单条数据

@@ -54,10 +54,6 @@ public interface SysLoginLogMapper {
     */
     List<SysLoginLog> selectSysLoginLogList(SysLoginLog sysLoginLog);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysLoginLog> selectUnionSysLoginLogList(SysLoginLog sysLoginLog);
 
     /**
     * 根据Id查询单条数据

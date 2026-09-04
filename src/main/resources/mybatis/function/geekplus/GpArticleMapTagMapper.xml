@@ -10,20 +10,20 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpArticleMapTagVo">
-        select article_id, article_tag from gp_article_map_tag
+        select gamt.article_id,gamt.article_tag from gp_article_map_tag gamt
     </sql>
 
     <select id="selectGpArticleMapTagList" parameterType="GpArticleMapTag" resultMap="GpArticleMapTagResult">
         <include refid="selectGpArticleMapTagVo"/>
         <where>
-            <if test="articleId != null "> and article_id = #{articleId}</if>
-            <if test="articleTag != null "> and article_tag = #{articleTag}</if>
+            <if test="articleId != null "> and gamt.article_id = #{articleId}</if>
+            <if test="articleTag != null "> and gamt.article_tag = #{articleTag}</if>
         </where>
     </select>
 
     <select id="selectGpArticleMapTagById" parameterType="Long" resultMap="GpArticleMapTagResult">
         <include refid="selectGpArticleMapTagVo"/>
-        where article_id = #{articleId}
+        where gamt.article_id = #{articleId}
     </select>
 
     <insert id="insertGpArticleMapTag" parameterType="GpArticleMapTag">

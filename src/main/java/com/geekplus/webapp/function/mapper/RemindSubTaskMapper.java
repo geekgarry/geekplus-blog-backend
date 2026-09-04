@@ -14,10 +14,6 @@ public interface RemindSubTaskMapper {
     */
     List<RemindSubTask> selectRemindSubTaskList(RemindSubTask remindSubTask);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<RemindSubTask> selectUnionRemindSubTaskList(RemindSubTask remindSubTask);
 
     /**
     * 根据Id查询单条数据

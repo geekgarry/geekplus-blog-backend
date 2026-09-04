@@ -51,10 +51,6 @@ public interface UsersMapper {
     */
     List<Users> selectUsersList(Users users);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<Users> selectUnionUsersList(Users users);
 
     /**
     * 用作客户端用户登录

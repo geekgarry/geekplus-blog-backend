@@ -19,14 +19,7 @@
     </resultMap>
 
     <!--系统登录日志-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        log_id,log_user_id,log_username,log_login_ip,login_location,log_browser,log_system,log_time,log_type,log_msg
-         from sys_login_log
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sll）；列表/详情共用 -->
     <sql id="selectSysLoginLogVo">
         select
             sll.log_id,sll.log_user_id,sll.log_username,sll.log_login_ip,sll.login_location,sll.log_browser,sll.log_system,sll.log_time,sll.log_type,sll.log_msg
@@ -35,44 +28,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysLoginLogList" parameterType="SysLoginLog" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="logId !=null">
-                        AND log_id = #{logId}
-                    </if>
-                    <if test="logUserId !=null">
-                        AND log_user_id = #{logUserId}
-                    </if>
-                    <if test="logUsername !=null">
-                        AND log_username = #{logUsername}
-                    </if>
-                    <if test="logLoginIp !=null">
-                        AND log_login_ip = #{logLoginIp}
-                    </if>
-                    <if test="loginLocation !=null">
-                        AND login_location = #{loginLocation}
-                    </if>
-                    <if test="logBrowser !=null">
-                        AND log_browser = #{logBrowser}
-                    </if>
-                    <if test="logSystem !=null">
-                        AND log_system = #{logSystem}
-                    </if>
-                    <if test="logTime !=null">
-                        AND log_time = #{logTime}
-                    </if>
-                    <if test="logType !=null">
-                        AND log_type = #{logType}
-                    </if>
-                    <if test="logMsg !=null">
-                        AND log_msg = #{logMsg}
-                    </if>
-        </where>
-        order by log_time desc
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysLoginLogList" parameterType="SysLoginLog" resultMap="BaseResultMap">
         <include refid="selectSysLoginLogVo"/>
         <where>
                     <if test="logId !=null">
@@ -111,9 +66,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysLoginLogById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysLoginLogVo"/>
         where
-                log_id = #{logId}
+                sll.log_id = #{logId}
     </select>
 
     <!--添加操作SQL-->

@@ -20,14 +20,7 @@
     </resultMap>
 
     <!--提醒任务-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select 
-        id,user_id,task_title,task_content,task_type,task_status,deadline,create_time,is_remind,remind_time,is_repeat
-         from remind_task
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 rt）；列表/详情共用 -->
     <sql id="selectRemindTaskVo">
         select 
         rt.id,rt.user_id,rt.task_title,rt.task_content,rt.task_type,rt.task_status,rt.deadline,rt.create_time,rt.is_remind,rt.remind_time,rt.is_repeat
@@ -36,46 +29,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectRemindTaskList" parameterType="RemindTask" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="id !=null ">
-         AND id = #{id,jdbcType=INTEGER}
-        </if>
-        <if test="userId !=null  and userId != ''">
-         AND user_id = #{userId,jdbcType=VARCHAR}
-        </if>
-        <if test="taskTitle !=null  and taskTitle != ''">
-         AND task_title = #{taskTitle,jdbcType=VARCHAR}
-        </if>
-        <if test="taskContent !=null  and taskContent != ''">
-         AND task_content = #{taskContent,jdbcType=VARCHAR}
-        </if>
-        <if test="taskType !=null ">
-         AND task_type = #{taskType,jdbcType=INTEGER}
-        </if>
-        <if test="taskStatus !=null ">
-         AND task_status = #{taskStatus,jdbcType=INTEGER}
-        </if>
-        <if test="deadline !=null ">
-         AND deadline = #{deadline,jdbcType=TIMESTAMP}
-        </if>
-        <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="isRemind !=null ">
-         AND is_remind = #{isRemind,jdbcType=INTEGER}
-        </if>
-        <if test="remindTime !=null ">
-         AND remind_time = #{remindTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="isRepeat !=null ">
-         AND is_repeat = #{isRepeat,jdbcType=INTEGER}
-        </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionRemindTaskList" parameterType="RemindTask" resultMap="BaseResultMap">
         <include refid="selectRemindTaskVo"/>
         <where>
         <if test="id !=null ">
@@ -116,9 +69,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectRemindTaskById" parameterType="Integer" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectRemindTaskVo"/>
         where
-        id = #{id}
+        rt.id = #{id}
     </select>
 
     <!--添加操作SQL-->
@@ -169,7 +122,6 @@
         delete FROM remind_task where id = #{id}
     </delete>
 
-
     <!--批量删除操作SQL-->
     <delete id="deleteRemindTaskByIds" parameterType="Integer">
         delete FROM remind_task where id in
@@ -177,7 +129,6 @@
              #{id}
         </foreach>
     </delete>
-
 
     <!--更新操作SQL-->
     <update id="updateRemindTask" parameterType="RemindTask">

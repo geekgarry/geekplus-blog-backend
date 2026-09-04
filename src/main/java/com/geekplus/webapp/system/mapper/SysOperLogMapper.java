@@ -57,10 +57,6 @@ public interface SysOperLogMapper {
     */
     List<SysOperLog> selectSysOperLogList(SysOperLog sysOperLog);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysOperLog> selectUnionSysOperLogList(SysOperLog sysOperLog);
 
     /**
     * 根据Id查询单条数据

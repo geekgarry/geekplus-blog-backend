@@ -79,7 +79,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 <!--    </resultMap>-->
 
     <sql id="selectGpArticlesVo">
-        select id, author_name, author_id, article_title, article_content, abstract_text, index_picture, article_category, like_count, view_count, create_time, update_time, is_display from gp_articles
+        select ga.id,ga.author_name,ga.author_id,ga.article_title,ga.article_content,ga.abstract_text,ga.index_picture,ga.article_category,ga.like_count,ga.view_count,ga.create_time,ga.update_time,ga.is_display from gp_articles ga
     </sql>
 
     <sql id="selectGpArticlesUnionVo">

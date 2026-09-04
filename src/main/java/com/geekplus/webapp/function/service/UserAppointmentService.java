@@ -59,10 +59,6 @@ public interface UserAppointmentService {
     */
     public List<UserAppointment> selectUserAppointmentList(UserAppointment userAppointment);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<UserAppointment> selectUnionUserAppointmentList(UserAppointment userAppointment);
 
     /**
     * 根据Id查询单条数据

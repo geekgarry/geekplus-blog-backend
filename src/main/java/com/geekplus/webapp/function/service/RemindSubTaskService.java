@@ -16,10 +16,6 @@ public interface RemindSubTaskService {
     */
     public List<RemindSubTask> queryRemindSubTaskList(RemindSubTask remindSubTask);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<RemindSubTask> queryUnionRemindSubTaskList(RemindSubTask remindSubTask);
 
     /**
     * 根据Id查询单条数据

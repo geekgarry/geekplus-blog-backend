@@ -17,10 +17,6 @@ public interface ResourceMetaDataService {
     */
     public List<ResourceMetaData> queryResourceMetaDataList(ResourceMetaData resourceMetaData);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<ResourceMetaData> queryUnionResourceMetaDataList(ResourceMetaData resourceMetaData);
 
     /**
     * 根据Id查询单条数据

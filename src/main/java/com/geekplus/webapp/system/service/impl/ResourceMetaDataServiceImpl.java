@@ -29,13 +29,6 @@ public class ResourceMetaDataServiceImpl implements ResourceMetaDataService {
         return resourceMetaDataMapper.selectResourceMetaDataList(resourceMetaData);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    @Override
-    public List<ResourceMetaData> queryUnionResourceMetaDataList(ResourceMetaData resourceMetaData){
-        return resourceMetaDataMapper.selectUnionResourceMetaDataList(resourceMetaData);
-    }
 
     /**
     * 根据Id查询单条数据

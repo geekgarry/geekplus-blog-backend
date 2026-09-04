@@ -52,10 +52,6 @@ public interface SysRoleMapper {
     */
     List<SysRole> selectSysRoleList(SysRole sysRole);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysRole> selectUnionSysRoleList(SysRole sysRole);
 
     /**
     * 根据Id查询单条数据

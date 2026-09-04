@@ -28,14 +28,7 @@
     </resultMap>
 
     <!--用户信息表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        user_id,username,nickname,user_level,email,phone_number,gender,avatar,password,status,del_flag,login_ip,login_address,login_time,create_by,create_time,update_by,update_time,remark
-         from users
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 u）；列表/详情共用 -->
     <sql id="selectUsersVo">
         select
         u.user_id,u.username,u.nickname,u.user_level,u.email,u.phone_number,u.gender,u.avatar,u.password,u.status,u.del_flag,u.login_ip,u.login_address,u.login_time,u.create_by,u.create_time,u.update_by,u.update_time,u.remark
@@ -44,70 +37,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectUsersList" parameterType="Users" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="userId !=null ">
-         AND user_id = #{userId,jdbcType=INTEGER}
-        </if>
-        <if test="username !=null  and username != ''">
-         AND username = #{username,jdbcType=VARCHAR}
-        </if>
-        <if test="nickname !=null  and nickname != ''">
-         AND nickname = #{nickname,jdbcType=VARCHAR}
-        </if>
-        <if test="userLevel !=null ">
-         AND user_level = #{userLevel,jdbcType=INTEGER}
-        </if>
-        <if test="email !=null  and email != ''">
-         AND email = #{email,jdbcType=VARCHAR}
-        </if>
-        <if test="phoneNumber !=null  and phoneNumber != ''">
-         AND phone_number = #{phoneNumber,jdbcType=VARCHAR}
-        </if>
-        <if test="gender !=null ">
-         AND gender = #{gender,jdbcType=INTEGER}
-        </if>
-        <if test="avatar !=null  and avatar != ''">
-         AND avatar = #{avatar,jdbcType=VARCHAR}
-        </if>
-        <if test="password !=null  and password != ''">
-         AND password = #{password,jdbcType=VARCHAR}
-        </if>
-        <if test="status !=null ">
-         AND status = #{status,jdbcType=INTEGER}
-        </if>
-        <if test="delFlag !=null ">
-         AND del_flag = #{delFlag,jdbcType=INTEGER}
-        </if>
-        <if test="loginIp !=null  and loginIp != ''">
-         AND login_ip = #{loginIp,jdbcType=VARCHAR}
-        </if>
-        <if test="loginAddress !=null  and loginAddress != ''">
-         AND login_address = #{loginAddress,jdbcType=VARCHAR}
-        </if>
-        <if test="loginTime !=null ">
-         AND login_time = #{loginTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="createBy !=null  and createBy != ''">
-         AND create_by = #{createBy,jdbcType=VARCHAR}
-        </if>
-        <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="updateBy !=null  and updateBy != ''">
-         AND update_by = #{updateBy,jdbcType=VARCHAR}
-        </if>
-        <if test="updateTime !=null ">
-         AND update_time = #{updateTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="remark !=null  and remark != ''">
-         AND remark = #{remark,jdbcType=VARCHAR}
-        </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionUsersList" parameterType="Users" resultMap="BaseResultMap">
         <include refid="selectUsersVo"/>
         <where>
         <if test="userId !=null ">
@@ -205,9 +134,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectUsersById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectUsersVo"/>
         where
-        user_id = #{userId}
+        u.user_id = #{userId}
     </select>
 
     <!--添加操作SQL-->

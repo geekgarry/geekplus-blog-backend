@@ -19,14 +19,7 @@
     </resultMap>
 
     <!--在线音乐-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        id,name,artist,url,cover,lrc,order_id,is_display,create_time,update_time
-         from gp_music
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 gm）；列表/详情共用 -->
     <sql id="selectGpMusicVo">
         select
         gm.id,gm.name,gm.artist,gm.url,gm.cover,gm.lrc,gm.order_id,gm.is_display,gm.create_time,gm.update_time
@@ -35,44 +28,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectGpMusicList" parameterType="GpMusic" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="id !=null ">
-         AND id = #{id,jdbcType=INTEGER}
-        </if>
-        <if test="name !=null  and name != ''">
-         AND name = #{name,jdbcType=VARCHAR}
-        </if>
-        <if test="artist !=null  and artist != ''">
-         AND artist = #{artist,jdbcType=VARCHAR}
-        </if>
-        <if test="url !=null  and url != ''">
-         AND url = #{url,jdbcType=VARCHAR}
-        </if>
-        <if test="cover !=null  and cover != ''">
-         AND cover = #{cover,jdbcType=VARCHAR}
-        </if>
-        <if test="lrc !=null  and lrc != ''">
-         AND lrc = #{lrc,jdbcType=VARCHAR}
-        </if>
-        <if test="orderId !=null">
-         AND order_id = #{orderId,jdbcType=INTEGER}
-        </if>
-        <if test="isDisplay !=null">
-         AND is_display = #{isDisplay,jdbcType=INTEGER}
-        </if>
-        <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="updateTime !=null ">
-         AND update_time = #{updateTime,jdbcType=TIMESTAMP}
-        </if>
-        </where>
-        order by order_id asc
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionGpMusicList" parameterType="GpMusic" resultMap="BaseResultMap">
         <include refid="selectGpMusicVo"/>
         <where>
         <if test="id !=null ">
@@ -111,9 +66,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectGpMusicById" parameterType="Integer" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectGpMusicVo"/>
         where
-        id = #{id}
+        gm.id = #{id}
     </select>
 
     <!--添加操作SQL-->

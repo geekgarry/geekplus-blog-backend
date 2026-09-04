@@ -27,12 +27,6 @@ public class SysQuartzJobServiceImpl implements SysQuartzJobService {
         return sysQuartzJobMapper.selectSysQuartzJobList(sysQuartzJob);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysQuartzJob> queryUnionSysQuartzJobList(SysQuartzJob sysQuartzJob){
-        return sysQuartzJobMapper.selectUnionSysQuartzJobList(sysQuartzJob);
-    }
 
     /**
     * 根据Id查询单条数据

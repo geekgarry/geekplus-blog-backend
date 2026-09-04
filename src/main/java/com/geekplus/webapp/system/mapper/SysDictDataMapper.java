@@ -16,10 +16,6 @@ public interface SysDictDataMapper {
     */
     List<SysDictData> selectSysDictDataList(SysDictData sysDictData);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysDictData> selectUnionSysDictDataList(SysDictData sysDictData);
 
     /**
     * 根据Id查询单条数据

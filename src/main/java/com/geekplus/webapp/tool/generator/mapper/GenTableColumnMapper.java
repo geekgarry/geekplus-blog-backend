@@ -56,10 +56,6 @@ public interface GenTableColumnMapper {
     */
     List<TableColumnInfo> selectGenTableColumnList(TableColumnInfo tableColumnInfo);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<TableColumnInfo> selectUnionGenTableColumnList(TableColumnInfo tableColumnInfo);
 
     /**
     * 根据Id查询单条数据

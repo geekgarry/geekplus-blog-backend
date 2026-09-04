@@ -6,15 +6,13 @@ import com.geekplus.common.core.controller.BaseController;
 import com.geekplus.common.domain.Result;
 import com.geekplus.common.enums.BusinessType;
 import com.geekplus.common.enums.OperatorType;
+import com.geekplus.common.page.PageDataInfo;
 import com.geekplus.common.util.poi.ExcelUtil;
 import com.geekplus.webapp.system.entity.SysDictData;
 import com.geekplus.webapp.system.service.SysDictDataService;
-import com.geekplus.common.page.PageDataInfo;
-import com.geekplus.common.annotation.Log;
-import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import org.springframework.web.bind.annotation.*;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.Date;
@@ -122,7 +120,7 @@ public class SysDictDataController extends BaseController {
     public PageDataInfo list(SysDictData sysDictData) {
         //PageHelper.startPage(pageParam.getPageNum(), pageParam.getPageSize());
         startPage();
-        List<SysDictData> list = sysDictDataService.queryUnionSysDictDataList(sysDictData);
+        List<SysDictData> list = sysDictDataService.querySysDictDataList(sysDictData);
         //PageInfo pageInfo = new PageInfo(list);
         return getDataTable(list);
     }

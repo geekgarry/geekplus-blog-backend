@@ -77,12 +77,6 @@ public class SysLoginLogServiceImpl implements SysLoginLogService {
         return sysLoginLogMapper.selectSysLoginLogList(sysLoginLog);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysLoginLog> selectUnionSysLoginLogList(SysLoginLog sysLoginLog){
-        return sysLoginLogMapper.selectUnionSysLoginLogList(sysLoginLog);
-    }
 
     /**
     * 根据Id查询单条数据

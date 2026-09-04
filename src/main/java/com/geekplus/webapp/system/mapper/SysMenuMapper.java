@@ -63,10 +63,6 @@ public interface SysMenuMapper {
       */
     List<SysMenu> selectSysMenuTreeList();
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysMenu> selectUnionSysMenuList(SysMenu sysMenu);
 
     /**
     * 根据Id查询单条数据

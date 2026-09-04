@@ -16,17 +16,17 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpCarouselVo">
-        select id, carousel_img, carousel_title, carousel_info, carousel_link, create_time, update_time, is_display from gp_carousel
+        select gc.id,gc.carousel_img,gc.carousel_title,gc.carousel_info,gc.carousel_link,gc.create_time,gc.update_time,gc.is_display from gp_carousel gc
     </sql>
 
     <select id="selectGpCarouselList" parameterType="GpCarousel" resultMap="GpCarouselResult">
         <include refid="selectGpCarouselVo"/>
         <where>
-            <if test="carouselImg != null  and carouselImg != ''"> and carousel_img = #{carouselImg}</if>
-            <if test="carouselTitle != null  and carouselTitle != ''"> and carousel_title like concat('%',#{carouselTitle},'%')</if>
-            <if test="carouselInfo != null  and carouselInfo != ''"> and carousel_info like concat('%',#{carouselInfo},'%')</if>
-            <if test="carouselLink != null  and carouselLink != ''"> and carousel_link = #{carouselLink}</if>
-            <if test="isDisplay != null  and isDisplay != ''"> and is_display = #{isDisplay}</if>
+            <if test="carouselImg != null  and carouselImg != ''"> and gc.carousel_img = #{carouselImg}</if>
+            <if test="carouselTitle != null  and carouselTitle != ''"> and gc.carousel_title like concat('%',#{carouselTitle},'%')</if>
+            <if test="carouselInfo != null  and carouselInfo != ''"> and gc.carousel_info like concat('%',#{carouselInfo},'%')</if>
+            <if test="carouselLink != null  and carouselLink != ''"> and gc.carousel_link = #{carouselLink}</if>
+            <if test="isDisplay != null  and isDisplay != ''"> and gc.is_display = #{isDisplay}</if>
         </where>
         order by create_time desc
     </select>
@@ -36,16 +36,16 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectGpCarouselVo"/>
         <where>
             is_display=1
-<!--            <if test="carouselImg != null  and carouselImg != ''"> and carousel_img = #{carouselImg}</if>-->
-<!--            <if test="carouselTitle != null  and carouselTitle != ''"> and carousel_title = #{carouselTitle}</if>-->
-<!--            <if test="carouselInfo != null  and carouselInfo != ''"> and carousel_info = #{carouselInfo}</if>-->
-<!--            <if test="carouselLink != null  and carouselLink != ''"> and carousel_link = #{carouselLink}</if>-->
+<!--            <if test="carouselImg != null  and carouselImg != ''"> and gc.carousel_img = #{carouselImg}</if>-->
+<!--            <if test="carouselTitle != null  and carouselTitle != ''"> and gc.carousel_title = #{carouselTitle}</if>-->
+<!--            <if test="carouselInfo != null  and carouselInfo != ''"> and gc.carousel_info = #{carouselInfo}</if>-->
+<!--            <if test="carouselLink != null  and carouselLink != ''"> and gc.carousel_link = #{carouselLink}</if>-->
         </where>
     </select>
 
     <select id="selectGpCarouselById" parameterType="Integer" resultMap="GpCarouselResult">
         <include refid="selectGpCarouselVo"/>
-        where id = #{id}
+        where gc.id = #{id}
     </select>
 
     <insert id="insertGpCarousel" parameterType="GpCarousel" useGeneratedKeys="true" keyProperty="id">

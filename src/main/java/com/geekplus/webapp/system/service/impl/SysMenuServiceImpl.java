@@ -107,12 +107,6 @@ public class SysMenuServiceImpl implements SysMenuService {
         return SysMenuUtil.getParentMenuList(sysMenuMapper.selectSysMenuTreeList());
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysMenu> selectUnionSysMenuList(SysMenu sysMenu){
-        return sysMenuMapper.selectUnionSysMenuList(sysMenu);
-    }
 
     /**
     * 根据Id查询单条数据

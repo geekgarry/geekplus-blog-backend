@@ -95,10 +95,6 @@ public interface GenCodeService {
      */
     public List<TableInfo> selectGenTableList(TableInfo tableInfo);
 
-    /**
-     * 查询全部，用作联合查询使用(在基础上修改即可)
-     */
-    public List<TableInfo> selectUnionGenTableList(TableInfo tableInfo);
 
     /**
      * 根据Id查询单条数据

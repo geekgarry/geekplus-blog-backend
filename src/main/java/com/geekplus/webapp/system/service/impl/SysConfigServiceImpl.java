@@ -120,12 +120,6 @@ public class SysConfigServiceImpl implements SysConfigService {
         return sysConfigMapper.selectSysConfigList(sysConfig);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysConfig> selectUnionSysConfigList(SysConfig sysConfig){
-        return sysConfigMapper.selectUnionSysConfigList(sysConfig);
-    }
 
     /**
      * 加载参数缓存数据

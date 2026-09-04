@@ -17,19 +17,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectChatAILogVo">
-        select id, user_id, username, user_ip, user_mac, ask_content, reply_content, create_time, chat_record_id from chatai_log
+        select cl.id,cl.user_id,cl.username,cl.user_ip,cl.user_mac,cl.ask_content,cl.reply_content,cl.create_time,cl.chat_record_id from chatai_log cl
     </sql>
 
     <select id="selectChatAILogList" parameterType="ChatAILog" resultMap="ChatAILogResult">
         <include refid="selectChatAILogVo"/>
         <where>
-            <if test="userId != null "> and user_id = #{userId}</if>
-            <if test="username != null  and username != ''"> and username like concat('%', #{username}, '%')</if>
-            <if test="userIp != null  and userIp != ''"> and user_ip = #{userIp}</if>
-            <if test="userMac != null  and userMac != ''"> and user_mac = #{userMac}</if>
-            <if test="askContent != null  and askContent != ''"> and ask_content = #{askContent}</if>
-            <if test="replyContent != null  and replyContent != ''"> and reply_content = #{replyContent}</if>
-            <if test="chatRecordId != null  and chatRecordId != ''"> and chat_record_id = #{chatRecordId}</if>
+            <if test="userId != null "> and cl.user_id = #{userId}</if>
+            <if test="username != null  and username != ''"> and cl.username like concat('%', #{username}, '%')</if>
+            <if test="userIp != null  and userIp != ''"> and cl.user_ip = #{userIp}</if>
+            <if test="userMac != null  and userMac != ''"> and cl.user_mac = #{userMac}</if>
+            <if test="askContent != null  and askContent != ''"> and cl.ask_content = #{askContent}</if>
+            <if test="replyContent != null  and replyContent != ''"> and cl.reply_content = #{replyContent}</if>
+            <if test="chatRecordId != null  and chatRecordId != ''"> and cl.chat_record_id = #{chatRecordId}</if>
         </where>
         order by create_time desc
     </select>
@@ -37,14 +37,14 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="getChatAILogListByRecordId" resultMap="ChatAILogResult">
         <include refid="selectChatAILogVo"/>
         <where>
-            <if test="chatRecordId != null  and chatRecordId != ''"> and chat_record_id = #{chatRecordId}</if>
+            <if test="chatRecordId != null  and chatRecordId != ''"> and cl.chat_record_id = #{chatRecordId}</if>
         </where>
         order by create_time asc
     </select>
 
     <select id="selectChatAILogById" parameterType="Long" resultMap="ChatAILogResult">
         <include refid="selectChatAILogVo"/>
-        where id = #{id}
+        where cl.id = #{id}
     </select>
 
     <!--查询出所有聊天记录ID-->

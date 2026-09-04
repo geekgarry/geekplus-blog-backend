@@ -43,12 +43,6 @@ public class SysDictServiceImpl implements SysDictService {
         return sysDictMapper.selectSysDictList(sysDict);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysDict> queryUnionSysDictList(SysDict sysDict){
-        return sysDictMapper.selectUnionSysDictList(sysDict);
-    }
 
     /**
     * 根据Id查询单条数据

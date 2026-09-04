@@ -60,10 +60,6 @@ public interface SysDeptService {
      */
     public List<SysDept> getSysDeptTreeList();
 
-    /**
-     * 查询全部，用作联合查询使用(在基础上修改即可)
-     */
-    public List<SysDept> selectUnionSysDeptList(SysDept sysDept);
 
     /**
      * 根据Id查询单条数据

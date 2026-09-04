@@ -14,14 +14,7 @@
     </resultMap>
 
     <!--提醒任务子任务-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select 
-        id,task_id,task_content,create_time,is_complete
-         from remind_sub_task
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 rst）；列表/详情共用 -->
     <sql id="selectRemindSubTaskVo">
         select 
         rst.id,rst.task_id,rst.task_content,rst.create_time,rst.is_complete
@@ -30,28 +23,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectRemindSubTaskList" parameterType="RemindSubTask" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-        <if test="id !=null ">
-         AND id = #{id,jdbcType=INTEGER}
-        </if>
-        <if test="taskId !=null ">
-         AND task_id = #{taskId,jdbcType=INTEGER}
-        </if>
-        <if test="taskContent !=null  and taskContent != ''">
-         AND task_content = #{taskContent,jdbcType=VARCHAR}
-        </if>
-        <if test="createTime !=null ">
-         AND create_time = #{createTime,jdbcType=TIMESTAMP}
-        </if>
-        <if test="isComplete !=null ">
-         AND is_complete = #{isComplete,jdbcType=INTEGER}
-        </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionRemindSubTaskList" parameterType="RemindSubTask" resultMap="BaseResultMap">
         <include refid="selectRemindSubTaskVo"/>
         <where>
         <if test="id !=null ">
@@ -74,9 +45,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectRemindSubTaskById" parameterType="Integer" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectRemindSubTaskVo"/>
         where
-        id = #{id}
+        rst.id = #{id}
     </select>
 
     <!--添加操作SQL-->
@@ -115,7 +86,6 @@
         delete FROM remind_sub_task where id = #{id}
     </delete>
 
-
     <!--批量删除操作SQL-->
     <delete id="deleteRemindSubTaskByIds" parameterType="Integer">
         delete FROM remind_sub_task where id in
@@ -123,7 +93,6 @@
              #{id}
         </foreach>
     </delete>
-
 
     <!--更新操作SQL-->
     <update id="updateRemindSubTask" parameterType="RemindSubTask">

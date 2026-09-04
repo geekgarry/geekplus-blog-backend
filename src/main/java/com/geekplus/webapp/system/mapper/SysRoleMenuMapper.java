@@ -52,10 +52,6 @@ public interface SysRoleMenuMapper {
     */
     List<SysRoleMenu> selectSysRoleMenuList(SysRoleMenu sysRoleMenu);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysRoleMenu> selectUnionSysRoleMenuList(SysRoleMenu sysRoleMenu);
 
     /**
     * 根据Id查询单条数据

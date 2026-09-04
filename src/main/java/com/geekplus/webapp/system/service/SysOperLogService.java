@@ -56,10 +56,6 @@ public interface SysOperLogService {
     */
     public List<SysOperLog> selectSysOperLogList(SysOperLog sysOperLog);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysOperLog> selectUnionSysOperLogList(SysOperLog sysOperLog);
 
     /**
     * 根据Id查询单条数据

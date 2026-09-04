@@ -167,12 +167,6 @@ public class SysDeptServiceImpl implements SysDeptService {
         return getParentMenuList(sysDeptMapper.selectSysDeptTreeList());
     }
 
-    /**
-     * 联合查询
-     */
-    public List<SysDept> selectUnionSysDeptList(SysDept sysDept){
-        return sysDeptMapper.selectUnionSysDeptList(sysDept);
-    }
 
     /**
      * 根据Id查询单条数据

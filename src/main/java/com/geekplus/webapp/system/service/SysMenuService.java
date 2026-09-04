@@ -57,10 +57,6 @@ public interface SysMenuService {
     //树形结构菜显示
     public List<SysMenu> selectSysMenuTreeList();
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysMenu> selectUnionSysMenuList(SysMenu sysMenu);
 
     /**
     * 根据Id查询单条数据

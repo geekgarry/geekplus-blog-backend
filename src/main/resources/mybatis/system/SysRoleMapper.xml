@@ -41,14 +41,7 @@
     </resultMap>
 
     <!--系统角色表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        role_id,role_name,role_key,role_sort,data_scope,menu_check_strictly,dept_check_strictly,status,del_flag,create_by,create_time,update_by,update_time,remark
-         from sys_role
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sr）；列表/详情共用 -->
     <sql id="selectSysRoleVo">
         select
             sr.role_id,sr.role_name,sr.role_key,sr.role_sort,sr.data_scope,sr.menu_check_strictly,sr.dept_check_strictly,sr.status,sr.del_flag,sr.create_by,sr.create_time,sr.update_by,sr.update_time,sr.remark
@@ -57,55 +50,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysRoleList" parameterType="SysRole" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="roleId !=null">
-                        AND role_id = #{roleId}
-                    </if>
-                    <if test="roleName !=null and roleName != ''">
-                        AND role_name = #{roleName}
-                    </if>
-                    <if test="roleKey !=null">
-                        AND role_key = #{roleKey}
-                    </if>
-                    <if test="roleSort !=null">
-                        AND role_sort = #{roleSort}
-                    </if>
-                    <if test="dataScope !=null">
-                        AND data_scope = #{dataScope}
-                    </if>
-                    <if test="menuCheckStrictly !=null">
-                        AND menu_check_strictly = #{menuCheckStrictly}
-                    </if>
-                    <if test="deptCheckStrictly !=null">
-                        AND dept_check_strictly = #{deptCheckStrictly}
-                    </if>
-                    <if test="status !=null">
-                        AND status = #{status}
-                    </if>
-                    <if test="delFlag !=null">
-                        AND del_flag = #{delFlag}
-                    </if>
-                    <if test="createBy !=null">
-                        AND create_by = #{createBy}
-                    </if>
-                    <if test="createTime !=null">
-                        AND create_time = #{createTime}
-                    </if>
-                    <if test="updateBy !=null">
-                        AND update_by = #{updateBy}
-                    </if>
-                    <if test="updateTime !=null">
-                        AND update_time = #{updateTime}
-                    </if>
-                    <if test="remark !=null">
-                        AND remark = #{remark}
-                    </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysRoleList" parameterType="SysRole" resultMap="BaseResultMap">
         <include refid="selectSysRoleVo"/>
         <where>
                     <if test="roleId !=null">
@@ -155,9 +99,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysRoleById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysRoleVo"/>
         where
-                role_id = #{roleId}
+                sr.role_id = #{roleId}
     </select>
 
     <!--单条数据或详情查询操作SQL-->

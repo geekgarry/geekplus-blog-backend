@@ -27,12 +27,6 @@ public class SysDictDataServiceImpl implements SysDictDataService {
         return sysDictDataMapper.selectSysDictDataList(sysDictData);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysDictData> queryUnionSysDictDataList(SysDictData sysDictData){
-        return sysDictDataMapper.selectUnionSysDictDataList(sysDictData);
-    }
 
     /**
     * 根据Id查询单条数据

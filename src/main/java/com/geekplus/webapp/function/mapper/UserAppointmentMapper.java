@@ -56,10 +56,6 @@ public interface UserAppointmentMapper {
     */
     List<UserAppointment> selectUserAppointmentList(UserAppointment userAppointment);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<UserAppointment> selectUnionUserAppointmentList(UserAppointment userAppointment);
 
     /**
     * 根据Id查询单条数据

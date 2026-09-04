@@ -42,7 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpUserCommentVo">
-        select id, reply_id, name, email, website, content, topic_id, topic_type, create_time, user_id, parent_id, reply_name, like_count, is_display from gp_user_comment
+        select guc.id,guc.reply_id,guc.name,guc.email,guc.website,guc.content,guc.topic_id,guc.topic_type,guc.create_time,guc.user_id,guc.parent_id,guc.reply_name,guc.like_count,guc.is_display from gp_user_comment guc
     </sql>
 
 <!--    用于前端网站，用在网站查询获取用户评论，考虑到两种情况，一种是用户网站留言topic_id为null或空值，一种是用户文章留言topic_id等于文章的ID-->
@@ -83,12 +83,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <!--子查询获取回复的信息，后端管理系统返回数据使用-->
     <select id="listReplyArticleComment" resultMap="GpUserCommentResult">
         <include refid="selectGpUserCommentVo"/>
-        where parent_id=#{id} ORDER BY create_time ASC
+        where guc.parent_id=#{id} ORDER BY create_time ASC
 	</select>
 
     <select id="selectChildrenByParentIds" resultMap="GpUserCommentResult">
         <include refid="selectGpUserCommentVo"/>
-        where parent_id in
+        where guc.parent_id in
         <foreach collection="parentIds" item="pid" open="(" separator="," close=")">
             #{pid}
         </foreach>
@@ -118,30 +118,30 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectGpUserCommentList" parameterType="GpUserComment" resultMap="GpUserCommentResult">
         <include refid="selectGpUserCommentVo"/>
         <where>
-            <if test="replyId != null "> and reply_id = #{replyId}</if>
-            <if test="name != null  and name != ''"> and name like concat('%', #{name}, '%')</if>
-            <if test="email != null  and email != ''"> and email = #{email}</if>
-            <if test="website != null  and website != ''"> and website = #{website}</if>
-            <if test="content != null  and content != ''"> and content like concat('%', #{content}, '%')</if>
-            <if test="topicId != null  and topicId != ''"> and topic_id = #{topicId}</if>
-            <if test="topicType != null  and topicType != ''"> and topic_type = #{topicType}</if>
-            <if test="userId != null  and userId != ''"> and user_id = #{userId}</if>
+            <if test="replyId != null "> and guc.reply_id = #{replyId}</if>
+            <if test="name != null  and name != ''"> and guc.name like concat('%', #{name}, '%')</if>
+            <if test="email != null  and email != ''"> and guc.email = #{email}</if>
+            <if test="website != null  and website != ''"> and guc.website = #{website}</if>
+            <if test="content != null  and content != ''"> and guc.content like concat('%', #{content}, '%')</if>
+            <if test="topicId != null  and topicId != ''"> and guc.topic_id = #{topicId}</if>
+            <if test="topicType != null  and topicType != ''"> and guc.topic_type = #{topicType}</if>
+            <if test="userId != null  and userId != ''"> and guc.user_id = #{userId}</if>
             <if test="ownUserIds != null and ownUserIds.size() &gt; 0">
-                and user_id in
+                and guc.user_id in
                 <foreach collection="ownUserIds" item="uid" open="(" separator="," close=")">
                     #{uid}
                 </foreach>
             </if>
-            <if test="parentId != null"> and parent_id = #{parentId}</if>
-            <if test="replyName != null  and replyName != ''"> and reply_name = #{replyName}</if>
-            <if test="isDisplay != null"> and is_display = #{isDisplay}</if>
+            <if test="parentId != null"> and guc.parent_id = #{parentId}</if>
+            <if test="replyName != null  and replyName != ''"> and guc.reply_name = #{replyName}</if>
+            <if test="isDisplay != null"> and guc.is_display = #{isDisplay}</if>
         </where>
         order by create_time desc
     </select>
 
     <select id="selectGpUserCommentById" parameterType="Long" resultMap="GpUserCommentResult">
         <include refid="selectGpUserCommentVo"/>
-        where id = #{id}
+        where guc.id = #{id}
     </select>
 
     <select id="selectUserComment" >

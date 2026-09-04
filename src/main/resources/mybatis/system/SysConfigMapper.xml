@@ -20,14 +20,7 @@
     </resultMap>
 
     <!---->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        config_id,config_name,config_key,config_value,value_type,config_type,create_by,create_time,update_by,update_time,remark
-         from sys_config
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sc）；列表/详情共用 -->
     <sql id="selectSysConfigVo">
         select
             sc.config_id,sc.config_name,sc.config_key,sc.config_value,sc.value_type,sc.config_type,sc.create_by,sc.create_time,sc.update_by,sc.update_time,sc.remark
@@ -36,46 +29,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysConfigList" parameterType="SysConfig" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="configId !=null">
-                        AND config_id = #{configId}
-                    </if>
-                    <if test="configName !=null">
-                        AND config_name = #{configName}
-                    </if>
-                    <if test="configKey !=null">
-                        AND config_key = #{configKey}
-                    </if>
-                    <if test="configValue !=null">
-                        AND config_value = #{configValue}
-                    </if>
-                    <if test="valueType !=null">
-                        AND value_type = #{valueType}
-                    </if>
-                    <if test="configType !=null">
-                        AND config_type = #{configType}
-                    </if>
-                    <if test="createBy !=null">
-                        AND create_by = #{createBy}
-                    </if>
-                    <if test="createTime !=null">
-                        AND create_time = #{createTime}
-                    </if>
-                    <if test="updateBy !=null">
-                        AND update_by = #{updateBy}
-                    </if>
-                    <if test="updateTime !=null">
-                        AND update_time = #{updateTime}
-                    </if>
-                    <if test="remark !=null">
-                        AND remark = #{remark}
-                    </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysConfigList" parameterType="SysConfig" resultMap="BaseResultMap">
         <include refid="selectSysConfigVo"/>
         <where>
                     <if test="configId !=null">
@@ -116,9 +69,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysConfigById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysConfigVo"/>
         where
-                config_id = #{configId}
+                sc.config_id = #{configId}
     </select>
 
     <select id="selectConfig" parameterType="SysConfig" resultMap="BaseResultMap">

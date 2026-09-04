@@ -18,14 +18,7 @@
     </resultMap>
 
     <!--生成表数据列表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        column_id,column_name,is_pk,is_increment,is_required,column_comment,column_type,sort,table_id
-         from gen_table_column
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 gtc）；列表/详情共用 -->
     <sql id="selectGenTableColumnVo">
         select
             gtc.column_id,gtc.column_name,gtc.is_pk,gtc.is_increment,gtc.is_required,gtc.column_comment,gtc.column_type,gtc.sort,gtc.table_id
@@ -34,40 +27,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectGenTableColumnList" parameterType="TableColumnInfo" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-            <if test="columnId !=null ">
-                AND column_id = #{columnId,jdbcType=INTEGER}
-            </if>
-            <if test="columnName !=null  and columnName != ''">
-                AND column_name = #{columnName,jdbcType=VARCHAR}
-            </if>
-            <if test="isPk !=null ">
-                AND is_pk = #{isPk,jdbcType=INTEGER}
-            </if>
-            <if test="isIncrement !=null ">
-                AND is_increment = #{isIncrement,jdbcType=INTEGER}
-            </if>
-            <if test="isRequired !=null ">
-                AND is_required = #{isRequired,jdbcType=INTEGER}
-            </if>
-            <if test="columnComment !=null  and columnComment != ''">
-                AND column_comment = #{columnComment,jdbcType=VARCHAR}
-            </if>
-            <if test="columnType !=null  and columnType != ''">
-                AND column_type = #{columnType,jdbcType=VARCHAR}
-            </if>
-            <if test="sort !=null ">
-                AND sort = #{sort,jdbcType=INTEGER}
-            </if>
-            <if test="tableId !=null ">
-                AND table_id = #{tableId,jdbcType=INTEGER}
-            </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询) javaType-->
-    <select id="selectUnionGenTableColumnList" parameterType="TableColumnInfo" resultMap="BaseResultMap">
         <include refid="selectGenTableColumnVo"/>
         <where>
             <if test="columnId !=null ">
@@ -102,9 +61,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectGenTableColumnById" parameterType="Integer" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectGenTableColumnVo"/>
         where
-        column_id = #{columnId}
+        gtc.column_id = #{columnId}
     </select>
 
     <!--添加操作SQL-->

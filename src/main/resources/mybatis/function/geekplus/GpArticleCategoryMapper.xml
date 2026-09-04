@@ -38,27 +38,27 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectGpArticleCategoryVo">
-        select id, category_name, category_info, parent_id, priority_id,create_time,update_time,path,component,permission,menu_type,icon from gp_article_category
+        select gac.id,gac.category_name,gac.category_info,gac.parent_id,gac.priority_id,gac.create_time,gac.update_time,gac.path,gac.component,gac.permission,gac.menu_type,gac.icon from gp_article_category gac
     </sql>
 
     <select id="selectGpArticleCategoryList" parameterType="GpArticleCategory" resultMap="GpArticleCategoryResult">
         <include refid="selectGpArticleCategoryVo"/>
         <where>
-            <if test="categoryName != null  and categoryName != ''"> and category_name like concat('%', #{categoryName}, '%')</if>
-            <if test="categoryInfo != null  and categoryInfo != ''"> and category_info = #{categoryInfo}</if>
-            <if test="path != null  and path != ''"> and path = #{path}</if>
-            <if test="component != null  and component != ''"> and component = #{component}</if>
-            <if test="permission != null  and permission != ''"> and permission = #{permission}</if>
-            <if test="parentId != null "> and parent_id = #{parentId}</if>
-            <if test="priorityId != null "> and priority_id = #{priorityId}</if>
-            <if test="menuType != null and menuType !=''"> and menu_type = #{menuType}</if>
-            <if test="icon != null and icon !=''"> and icon = #{icon}</if>
+            <if test="categoryName != null  and categoryName != ''"> and gac.category_name like concat('%', #{categoryName}, '%')</if>
+            <if test="categoryInfo != null  and categoryInfo != ''"> and gac.category_info = #{categoryInfo}</if>
+            <if test="path != null  and path != ''"> and gac.path = #{path}</if>
+            <if test="component != null  and component != ''"> and gac.component = #{component}</if>
+            <if test="permission != null  and permission != ''"> and gac.permission = #{permission}</if>
+            <if test="parentId != null "> and gac.parent_id = #{parentId}</if>
+            <if test="priorityId != null "> and gac.priority_id = #{priorityId}</if>
+            <if test="menuType != null and menuType !=''"> and gac.menu_type = #{menuType}</if>
+            <if test="icon != null and icon !=''"> and gac.icon = #{icon}</if>
         </where>
     </select>
 
     <select id="selectGpArticleCategoryById" parameterType="Integer" resultMap="GpArticleCategoryResult">
         <include refid="selectGpArticleCategoryVo"/>
-        where id = #{id}
+        where gac.id = #{id}
     </select>
 
     <insert id="insertGpArticleCategory" parameterType="GpArticleCategory" useGeneratedKeys="true" keyProperty="id">

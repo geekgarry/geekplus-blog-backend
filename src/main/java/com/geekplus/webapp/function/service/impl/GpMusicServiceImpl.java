@@ -76,12 +76,6 @@ public class GpMusicServiceImpl implements GpMusicService {
         return gpMusicMapper.selectGpMusicList(gpMusic);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<GpMusic> selectUnionGpMusicList(GpMusic gpMusic){
-        return gpMusicMapper.selectUnionGpMusicList(gpMusic);
-    }
 
     /**
     * 根据Id查询单条数据

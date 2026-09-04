@@ -16,10 +16,6 @@ public interface SysDictService {
     */
     public List<SysDict> querySysDictList(SysDict sysDict);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysDict> queryUnionSysDictList(SysDict sysDict);
 
     /**
     * 根据Id查询单条数据

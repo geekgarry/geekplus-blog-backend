@@ -53,10 +53,6 @@ public interface SysConfigService {
     */
     public List<SysConfig> selectSysConfigList(SysConfig sysConfig);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysConfig> selectUnionSysConfigList(SysConfig sysConfig);
 
     /**
      * 加载参数缓存数据

@@ -368,7 +368,7 @@
                     <if test="remark != null">remark = #{remark},</if>
                     update_time = sysdate()
         </trim>
-         where su.user_id = #{userId}
+         where user_id = #{userId}
     </update>
 
     <!--更新操作SQL-->

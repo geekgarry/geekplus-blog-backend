@@ -90,12 +90,6 @@ public class SysOperLogServiceImpl implements SysOperLogService {
         return sysOperLogMapper.selectSysOperLogList(sysOperLog);
     }
 
-    /**
-    * 查询全部,用于联合查询，在此基础做自己的定制改动
-    */
-    public List<SysOperLog> selectUnionSysOperLogList(SysOperLog sysOperLog){
-        return sysOperLogMapper.selectUnionSysOperLogList(sysOperLog);
-    }
 
     /**
     * 根据Id查询单条数据

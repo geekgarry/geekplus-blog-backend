@@ -14,10 +14,6 @@ public interface SysQuartzJobMapper {
     */
     List<SysQuartzJob> selectSysQuartzJobList(SysQuartzJob sysQuartzJob);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysQuartzJob> selectUnionSysQuartzJobList(SysQuartzJob sysQuartzJob);
 
     /**
     * 根据Id查询单条数据

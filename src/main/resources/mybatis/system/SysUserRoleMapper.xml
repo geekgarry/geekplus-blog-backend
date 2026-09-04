@@ -11,14 +11,7 @@
     </resultMap>
 
     <!--系统用户角色关系表-->
-    <!--基础查询语句-->
-    <sql id="baseSelectVo">
-        select
-        user_id,role_id
-         from sys_user_role
-    </sql>
-
-    <!--基础查询语句2,用作联合查询使用-->
+<!-- 查询公共片段（表别名 sur）；列表/详情共用 -->
     <sql id="selectSysUserRoleVo">
         select
             sur.user_id,sur.role_id
@@ -27,19 +20,6 @@
 
     <!--数据查询操作SQL(非联合查询)-->
     <select id="selectSysUserRoleList" parameterType="SysUserRole" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
-        <where>
-                    <if test="userId !=null">
-                        AND user_id = #{userId}
-                    </if>
-                    <if test="roleId !=null">
-                        AND role_id = #{roleId}
-                    </if>
-        </where>
-    </select>
-
-    <!--数据联合查询操作SQL(联合查询)-->
-    <select id="selectUnionSysUserRoleList" parameterType="SysUserRole" resultMap="BaseResultMap">
         <include refid="selectSysUserRoleVo"/>
         <where>
                     <if test="userId !=null">
@@ -53,9 +33,9 @@
 
     <!--单条数据或详情查询操作SQL-->
     <select id="selectSysUserRoleById" parameterType="Long" resultMap="BaseResultMap">
-        <include refid="baseSelectVo"/>
+        <include refid="selectSysUserRoleVo"/>
         where
-                user_id = #{userId}
+                sur.user_id = #{userId}
                 role_id = #{roleId}
     </select>
 

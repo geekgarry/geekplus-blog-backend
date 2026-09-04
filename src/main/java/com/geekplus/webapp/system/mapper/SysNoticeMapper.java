@@ -52,10 +52,6 @@ public interface SysNoticeMapper {
     */
     List<SysNotice> selectSysNoticeList(SysNotice sysNotice);
 
-    /**
-    * 查询全部,联合查询使用
-    */
-    List<SysNotice> selectUnionSysNoticeList(SysNotice sysNotice);
 
     /**
     * 根据Id查询单条数据

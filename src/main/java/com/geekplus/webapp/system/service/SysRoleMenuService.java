@@ -53,10 +53,6 @@ public interface SysRoleMenuService {
     */
     public List<SysRoleMenu> selectSysRoleMenuList(SysRoleMenu sysRoleMenu);
 
-    /**
-    * 查询全部，用作联合查询使用(在基础上修改即可)
-    */
-    public List<SysRoleMenu> selectUnionSysRoleMenuList(SysRoleMenu sysRoleMenu);
 
     /**
     * 根据Id查询单条数据
